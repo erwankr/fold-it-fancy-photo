@@ -33,13 +33,13 @@ const CLOTHING_TEMPLATES = {
     name: "T-Shirt",
     icon: Shirt,
     cropSettings: {
-      // Pour les t-shirts : recadrer la partie centrale du torse avec le col
+      // Pour les t-shirts : recadrer la partie centrale du torse avec le col bien visible
       finalWidth: 250,
       finalHeight: 180,
       sourceWidth: 0.5,      // Prendre seulement 50% de la largeur (torse central)
-      sourceHeight: 0.5,     // Prendre 50% de la hauteur pour inclure le col
+      sourceHeight: 0.6,     // Prendre 60% de la hauteur pour bien inclure le col
       offsetX: 0.25,         // Commencer à 25% de la largeur (centré)
-      offsetY: 0.15,         // Commencer à 15% de la hauteur (inclure le col)
+      offsetY: 0.05,         // Commencer à 5% de la hauteur (bien voir le col)
     }
   },
   chemise: {
