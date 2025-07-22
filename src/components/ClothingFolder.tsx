@@ -120,36 +120,12 @@ export const ClothingFolder = () => {
     toast.success(`Gabarit ${CLOTHING_TEMPLATES[selectedType].name} mis à jour`);
   };
 
-  const downloadImage = async (image: ProcessedImage) => {
-    try {
-      // Récupérer le blob depuis l'URL
-      const response = await fetch(image.processedUrl);
-      const blob = await response.blob();
-      
-      // Créer l'URL de téléchargement
-      const downloadUrl = URL.createObjectURL(blob);
-      
-      // Créer et déclencher le téléchargement
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `${image.originalFile.name.replace(/\.[^/.]+$/, "")}_plie.png`;
-      link.style.display = "none";
-      
-      // Ajouter au DOM, cliquer, puis nettoyer
-      document.body.appendChild(link);
-      link.click();
-      
-      // Nettoyer après un court délai
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(downloadUrl);
-      }, 100);
-      
-      toast.success("Image téléchargée");
-    } catch (error) {
-      console.error("Erreur de téléchargement:", error);
-      toast.error("Erreur lors du téléchargement");
-    }
+  const downloadImage = (image: ProcessedImage) => {
+    const link = document.createElement("a");
+    link.href = image.processedUrl;
+    link.download = `${image.originalFile.name.replace(/\.[^/.]+$/, "")}_plie.png`;
+    link.click();
+    toast.success("Image téléchargée");
   };
 
   const downloadAll = () => {
