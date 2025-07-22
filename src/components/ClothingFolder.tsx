@@ -20,33 +20,45 @@ const CLOTHING_TEMPLATES = {
     name: "Jean",
     icon: Car,
     cropSettings: {
-      width: 0.8,
-      height: 0.9,
-      offsetX: 0.1,
-      offsetY: 0.05,
-      foldHeight: 0.6
+      // Pour les jeans : format très compact et rectangulaire
+      finalWidth: 300,
+      finalHeight: 200,
+      sourceWidth: 0.9,      // Prendre 90% de la largeur source
+      sourceHeight: 0.85,    // Prendre 85% de la hauteur source
+      offsetX: 0.05,         // Centré horizontalement
+      offsetY: 0.1,          // Partir un peu plus bas pour éviter le haut
+      foldEffect: true,      // Effet de pliage visible
+      foldLines: 2           // Nombre de lignes de pliage
     }
   },
   tshirt: {
     name: "T-Shirt",
     icon: Shirt,
     cropSettings: {
-      width: 0.75,
-      height: 0.85,
-      offsetX: 0.125,
-      offsetY: 0.1,
-      foldHeight: 0.5
+      // Pour les t-shirts : format carré compact
+      finalWidth: 250,
+      finalHeight: 180,
+      sourceWidth: 0.8,      // Prendre 80% de la largeur source
+      sourceHeight: 0.7,     // Prendre 70% de la hauteur source (manches pliées)
+      offsetX: 0.1,          // Centré
+      offsetY: 0.15,         // Partir plus bas pour éviter le col
+      foldEffect: true,
+      foldLines: 3           // Plus de plis pour les t-shirts
     }
   },
   chemise: {
     name: "Chemise",
     icon: Shirt,
     cropSettings: {
-      width: 0.7,
-      height: 0.8,
-      offsetX: 0.15,
-      offsetY: 0.1,
-      foldHeight: 0.55
+      // Pour les chemises : format rectangulaire intermédiaire
+      finalWidth: 280,
+      finalHeight: 200,
+      sourceWidth: 0.85,
+      sourceHeight: 0.75,
+      offsetX: 0.075,
+      offsetY: 0.12,
+      foldEffect: true,
+      foldLines: 2
     }
   }
 };
@@ -65,46 +77,67 @@ export const ClothingFolder = () => {
 
       img.onload = () => {
         const template = CLOTHING_TEMPLATES[type];
-        const { width, height, offsetX, offsetY, foldHeight } = template.cropSettings;
+        const { finalWidth, finalHeight, sourceWidth, sourceHeight, offsetX, offsetY, foldEffect, foldLines } = template.cropSettings;
 
-        // Définir les dimensions du canvas final
-        canvas.width = 400;
-        canvas.height = 500;
+        // Définir les dimensions du canvas final selon le gabarit
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
 
         if (ctx) {
           // Fond blanc
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Calculer les dimensions de recadrage
-          const cropWidth = img.width * width;
-          const cropHeight = img.height * height;
+          // Calculer les dimensions de recadrage basées sur l'image source
+          const cropWidth = img.width * sourceWidth;
+          const cropHeight = img.height * sourceHeight;
           const cropX = img.width * offsetX;
           const cropY = img.height * offsetY;
 
-          // Dessiner l'image recadrée en simulant un pliage
-          const foldY = canvas.height * foldHeight;
-          
-          // Partie supérieure (visible)
-          ctx.drawImage(
-            img,
-            cropX, cropY, cropWidth, cropHeight * foldHeight,
-            20, 20, canvas.width - 40, foldY - 20
-          );
+          // Marges pour le rendu final
+          const margin = 15;
+          const drawWidth = canvas.width - (margin * 2);
+          const drawHeight = canvas.height - (margin * 2);
 
-          // Simulation du pli (ombre)
-          ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-          ctx.fillRect(20, foldY - 5, canvas.width - 40, 10);
+          if (foldEffect) {
+            // Simulation d'un vêtement plié avec plusieurs sections
+            const sectionHeight = drawHeight / (foldLines + 1);
+            
+            for (let i = 0; i <= foldLines; i++) {
+              const yPos = margin + (i * sectionHeight);
+              const alpha = 1 - (i * 0.15); // Chaque section devient plus sombre
+              
+              ctx.save();
+              ctx.globalAlpha = alpha;
+              
+              // Dessiner chaque section du vêtement
+              ctx.drawImage(
+                img,
+                cropX, cropY + (cropHeight * i / (foldLines + 1)), cropWidth, cropHeight / (foldLines + 1),
+                margin, yPos, drawWidth, sectionHeight - 5
+              );
+              
+              ctx.restore();
 
-          // Partie pliée (plus sombre et réduite)
-          ctx.save();
-          ctx.globalAlpha = 0.7;
-          ctx.drawImage(
-            img,
-            cropX, cropY + cropHeight * foldHeight, cropWidth, cropHeight * (1 - foldHeight),
-            40, foldY + 10, canvas.width - 80, (canvas.height - foldY - 30) * 0.8
-          );
-          ctx.restore();
+              // Ajouter une ligne de pli sauf pour la dernière section
+              if (i < foldLines) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+                ctx.fillRect(margin, yPos + sectionHeight - 5, drawWidth, 3);
+              }
+            }
+
+            // Ajouter une ombre légère en bas pour l'effet 3D
+            ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+            ctx.fillRect(margin + 5, margin + drawHeight + 2, drawWidth - 10, 8);
+
+          } else {
+            // Rendu simple sans effet de pliage
+            ctx.drawImage(
+              img,
+              cropX, cropY, cropWidth, cropHeight,
+              margin, margin, drawWidth, drawHeight
+            );
+          }
 
           canvas.toBlob((blob) => {
             if (blob) {
