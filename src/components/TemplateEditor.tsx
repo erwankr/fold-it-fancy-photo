@@ -151,23 +151,31 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
     const width = currentRect.width * scaleX;
     const height = currentRect.height * scaleY;
     
-    // Convertir en pourcentages de l'image originale
-    const widthPercent = width / img.naturalWidth;
-    const heightPercent = height / img.naturalHeight;
+    // S'assurer que les coordonnées sont dans les limites de l'image
+    const clampedX = Math.max(0, Math.min(x, img.naturalWidth - 1));
+    const clampedY = Math.max(0, Math.min(y, img.naturalHeight - 1));
+    const clampedWidth = Math.min(width, img.naturalWidth - clampedX);
+    const clampedHeight = Math.min(height, img.naturalHeight - clampedY);
+    
+    // Convertir en pourcentages de l'image originale (valeurs entre 0 et 1)
+    const xPercent = clampedX / img.naturalWidth;
+    const yPercent = clampedY / img.naturalHeight;
+    const widthPercent = clampedWidth / img.naturalWidth;
+    const heightPercent = clampedHeight / img.naturalHeight;
     
     // Calculer l'aspect ratio de la sélection pour ce gabarit
-    const selectedAspectRatio = width / height;
+    const selectedAspectRatio = clampedWidth / clampedHeight;
     
-    // Calculer les dimensions finales basées sur l'aire relative mais avec un aspect ratio fixe
+    // Calculer les dimensions finales basées sur l'aire relative
     const areaPercent = widthPercent * heightPercent;
     const scaleFactor = Math.max(0.5, Math.min(2.0, 1 / Math.sqrt(areaPercent)));
     
     const settings: CropSettings = {
-      xPercent: x / img.naturalWidth,
-      yPercent: y / img.naturalHeight,
+      xPercent,
+      yPercent,
       widthPercent,
       heightPercent,
-      targetAspectRatio: selectedAspectRatio, // Utiliser l'aspect ratio de la sélection
+      targetAspectRatio: selectedAspectRatio,
       maxFinalWidth: Math.round(300 * scaleFactor),
       maxFinalHeight: Math.round(400 * scaleFactor)
     };

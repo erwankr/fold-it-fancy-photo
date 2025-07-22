@@ -24,34 +24,42 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
       const { xPercent, yPercent, widthPercent, heightPercent, targetAspectRatio, maxFinalWidth, maxFinalHeight } = cropSettings;
       
       // Convertir les pourcentages en coordonnées pixel pour cette image
-      const x = Math.round(xPercent * img.naturalWidth);
-      const y = Math.round(yPercent * img.naturalHeight);  
-      const width = Math.round(widthPercent * img.naturalWidth);
-      const height = Math.round(heightPercent * img.naturalHeight);
+      // S'assurer que les valeurs sont valides
+      const safeXPercent = Math.max(0, Math.min(1, xPercent));
+      const safeYPercent = Math.max(0, Math.min(1, yPercent));
+      const safeWidthPercent = Math.max(0.01, Math.min(1, widthPercent));
+      const safeHeightPercent = Math.max(0.01, Math.min(1, heightPercent));
+      
+      const x = Math.floor(safeXPercent * img.naturalWidth);
+      const y = Math.floor(safeYPercent * img.naturalHeight);
+      let width = Math.floor(safeWidthPercent * img.naturalWidth);
+      let height = Math.floor(safeHeightPercent * img.naturalHeight);
+      
+      // S'assurer que le crop reste dans les limites de l'image
+      width = Math.min(width, img.naturalWidth - x);
+      height = Math.min(height, img.naturalHeight - y);
       
       // Utiliser l'aspect ratio cible défini pour ce type de vêtement
       let finalWidth, finalHeight;
       
       if (targetAspectRatio > maxFinalWidth / maxFinalHeight) {
-        // L'aspect ratio cible est plus large, on limite par la largeur
         finalWidth = maxFinalWidth;
         finalHeight = Math.round(maxFinalWidth / targetAspectRatio);
       } else {
-        // L'aspect ratio cible est plus haut, on limite par la hauteur
         finalHeight = maxFinalHeight;
         finalWidth = Math.round(maxFinalHeight * targetAspectRatio);
       }
       
-      console.log("Processing image with fixed aspect ratio:", {
-        originalPercents: { xPercent, yPercent, widthPercent, heightPercent },
-        convertedPixels: { x, y, width, height },
+      console.log("Processing image with proportional template:", {
+        originalPercents: { xPercent: safeXPercent, yPercent: safeYPercent, widthPercent: safeWidthPercent, heightPercent: safeHeightPercent },
+        pixelCoordinates: { x, y, width, height },
         imageDimensions: [img.naturalWidth, img.naturalHeight],
         targetAspectRatio,
         finalDimensions: [finalWidth, finalHeight]
       });
 
-      // Vérifier que les coordonnées sont valides
-      if (x < 0 || y < 0 || x + width > img.naturalWidth || y + height > img.naturalHeight) {
+      // Vérifier que les coordonnées sont valides (avec une tolérance)
+      if (width <= 0 || height <= 0 || x >= img.naturalWidth || y >= img.naturalHeight) {
         console.warn("Coordonnées de crop invalides, utilisation de l'image complète");
         
         canvas.width = finalWidth;
