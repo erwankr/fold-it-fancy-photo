@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, Download, Trash2, Eye, Shirt, Car } from "lucide-react";
+import { Upload, Download, Trash2, Settings, Shirt, Car } from "lucide-react";
+import { TemplateEditor } from "./TemplateEditor";
+import { processImageWithTemplate } from "./ImageProcessor";
 
 interface ProcessedImage {
   id: string;
@@ -13,46 +15,52 @@ interface ProcessedImage {
   type: ClothingType;
 }
 
+interface CropSettings {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  finalWidth: number;
+  finalHeight: number;
+}
+
 type ClothingType = "jean" | "tshirt" | "chemise";
 
 const CLOTHING_TEMPLATES = {
   jean: {
     name: "Jean",
     icon: Car,
-    cropSettings: {
-      // Pour les jeans : recadrer juste la partie centrale (cuisses)
+    defaultSettings: {
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 150,
       finalWidth: 300,
-      finalHeight: 200,
-      sourceWidth: 0.6,      // Prendre seulement 60% de la largeur (partie centrale)
-      sourceHeight: 0.3,     // Prendre seulement 30% de la hauteur (section cuisses)
-      offsetX: 0.2,          // Commencer à 20% de la largeur (centré)
-      offsetY: 0.35,         // Commencer à 35% de la hauteur (zone cuisses)
+      finalHeight: 200
     }
   },
   tshirt: {
     name: "T-Shirt",
     icon: Shirt,
-    cropSettings: {
-      // Pour les t-shirts : recadrer la partie centrale du torse avec le col bien visible
+    defaultSettings: {
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 180,
       finalWidth: 250,
-      finalHeight: 180,
-      sourceWidth: 0.5,      // Prendre seulement 50% de la largeur (torse central)
-      sourceHeight: 0.6,     // Prendre 60% de la hauteur pour bien inclure le col
-      offsetX: 0.25,         // Commencer à 25% de la largeur (centré)
-      offsetY: 0.05,         // Commencer à 5% de la hauteur (bien voir le col)
+      finalHeight: 180
     }
   },
   chemise: {
     name: "Chemise",
     icon: Shirt,
-    cropSettings: {
-      // Pour les chemises : similaire aux t-shirts mais légèrement plus large
+    defaultSettings: {
+      x: 0,
+      y: 0,
+      width: 220,
+      height: 180,
       finalWidth: 280,
-      finalHeight: 200,
-      sourceWidth: 0.55,
-      sourceHeight: 0.45,
-      offsetX: 0.225,
-      offsetY: 0.25,
+      finalHeight: 200
     }
   }
 };
@@ -61,69 +69,15 @@ export const ClothingFolder = () => {
   const [selectedType, setSelectedType] = useState<ClothingType>("jean");
   const [uploadedImages, setUploadedImages] = useState<ProcessedImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
+  const [customTemplates, setCustomTemplates] = useState<Record<ClothingType, CropSettings>>({
+    jean: CLOTHING_TEMPLATES.jean.defaultSettings,
+    tshirt: CLOTHING_TEMPLATES.tshirt.defaultSettings,
+    chemise: CLOTHING_TEMPLATES.chemise.defaultSettings
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const processImage = (file: File, type: ClothingType): Promise<ProcessedImage> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const img = new Image();
-
-      img.onload = () => {
-        const template = CLOTHING_TEMPLATES[type];
-        const { finalWidth, finalHeight, sourceWidth, sourceHeight, offsetX, offsetY } = template.cropSettings;
-
-        // Définir les dimensions du canvas final selon le gabarit
-        canvas.width = finalWidth;
-        canvas.height = finalHeight;
-
-        if (ctx) {
-          // Fond blanc
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          // Calculer les dimensions de recadrage basées sur l'image source
-          const cropWidth = img.width * sourceWidth;
-          const cropHeight = img.height * sourceHeight;
-          const cropX = img.width * offsetX;
-          const cropY = img.height * offsetY;
-
-          // Marges pour le rendu final
-          const margin = 10;
-          const drawWidth = canvas.width - (margin * 2);
-          const drawHeight = canvas.height - (margin * 2);
-
-          // Recadrage simple de la section désirée
-          ctx.drawImage(
-            img,
-            cropX, cropY, cropWidth, cropHeight,
-            margin, margin, drawWidth, drawHeight
-          );
-
-          // Ajouter une légère ombre pour l'effet "plié"
-          ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-          ctx.fillRect(margin + 3, margin + drawHeight + 1, drawWidth - 6, 4);
-
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const processedUrl = URL.createObjectURL(blob);
-              const originalUrl = URL.createObjectURL(file);
-              
-              resolve({
-                id: Math.random().toString(36).substr(2, 9),
-                originalFile: file,
-                originalUrl,
-                processedUrl,
-                type
-              });
-            }
-          }, "image/png");
-        }
-      };
-
-      img.src = URL.createObjectURL(file);
-    });
-  };
+  const templateFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -133,16 +87,37 @@ export const ClothingFolder = () => {
 
     try {
       const processedImages = await Promise.all(
-        fileArray.map(file => processImage(file, selectedType))
+        fileArray.map(file => processImageWithTemplate(file, customTemplates[selectedType]))
       );
 
-      setUploadedImages(prev => [...prev, ...processedImages]);
+      const imagesWithType = processedImages.map(img => ({
+        ...img,
+        type: selectedType
+      }));
+
+      setUploadedImages(prev => [...prev, ...imagesWithType]);
       toast.success(`${fileArray.length} image(s) traitée(s) avec succès`);
     } catch (error) {
       toast.error("Erreur lors du traitement des images");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleTemplateImageUpload = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setTemplateImageFile(files[0]);
+    setShowTemplateEditor(true);
+  };
+
+  const handleSaveTemplate = (settings: CropSettings) => {
+    setCustomTemplates(prev => ({
+      ...prev,
+      [selectedType]: settings
+    }));
+    setShowTemplateEditor(false);
+    setTemplateImageFile(null);
+    toast.success(`Gabarit ${CLOTHING_TEMPLATES[selectedType].name} mis à jour`);
   };
 
   const downloadImage = (image: ProcessedImage) => {
@@ -185,6 +160,22 @@ export const ClothingFolder = () => {
     setUploadedImages([]);
   };
 
+  if (showTemplateEditor && templateImageFile) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <TemplateEditor
+          imageFile={templateImageFile}
+          clothingType={CLOTHING_TEMPLATES[selectedType].name}
+          onSaveTemplate={handleSaveTemplate}
+          onCancel={() => {
+            setShowTemplateEditor(false);
+            setTemplateImageFile(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
@@ -205,26 +196,52 @@ export const ClothingFolder = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Type de vêtement</label>
-              <Select value={selectedType} onValueChange={(value: ClothingType) => setSelectedType(value)}>
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CLOTHING_TEMPLATES).map(([key, template]) => {
-                    const IconComponent = template.icon;
-                    return (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2">
-                          <IconComponent className="w-4 h-4" />
-                          {template.name}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Type de vêtement</label>
+                <Select value={selectedType} onValueChange={(value: ClothingType) => setSelectedType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CLOTHING_TEMPLATES).map(([key, template]) => {
+                      const IconComponent = template.icon;
+                      return (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="w-4 h-4" />
+                            {template.name}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Gabarit de découpe</label>
+                <div className="flex gap-2">
+                  <input
+                    ref={templateFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleTemplateImageUpload(e.target.files)}
+                    className="hidden"
+                  />
+                  <Button 
+                    onClick={() => templateFileInputRef.current?.click()}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Définir gabarit
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Uploadez une image pour définir la zone de découpe
+                </p>
+              </div>
             </div>
 
             <div>
@@ -241,7 +258,7 @@ export const ClothingFolder = () => {
                 disabled={isProcessing}
                 className="w-full"
               >
-                {isProcessing ? "Traitement en cours..." : "Choisir des images"}
+                {isProcessing ? "Traitement en cours..." : "Choisir des images à traiter"}
               </Button>
             </div>
 
@@ -322,7 +339,7 @@ export const ClothingFolder = () => {
               <div className="text-muted-foreground">
                 <Upload className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Aucune image uploadée</p>
-                <p className="text-sm">Sélectionnez un type de vêtement et uploadez vos images pour commencer</p>
+                <p className="text-sm">Définissez vos gabarits et uploadez vos images pour commencer</p>
               </div>
             </CardContent>
           </Card>
