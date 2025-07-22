@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, Download, Trash2, Settings, Shirt, Car } from "lucide-react";
+import { Upload, Download, Trash2, Settings, Shirt, Package2, ShirtIcon } from "lucide-react";
 import { TemplateEditor } from "./TemplateEditor";
 import { processImageWithTemplate } from "./ImageProcessor";
 import JSZip from "jszip";
@@ -31,7 +31,7 @@ type ClothingType = "jean" | "tshirt" | "chemise";
 const CLOTHING_TEMPLATES = {
   jean: {
     name: "Jean",
-    icon: Car,
+    icon: Package2,
     defaultSettings: {
       xPercent: 0.1,
       yPercent: 0.2,
@@ -57,7 +57,7 @@ const CLOTHING_TEMPLATES = {
   },
   chemise: {
     name: "Chemise",
-    icon: Shirt,
+    icon: ShirtIcon,
     defaultSettings: {
       xPercent: 0.1,
       yPercent: 0.02, // Encore plus haut pour le col de chemise
