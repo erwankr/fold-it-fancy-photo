@@ -121,17 +121,47 @@ export const ClothingFolder = () => {
   };
 
   const downloadImage = (image: ProcessedImage) => {
-    const link = document.createElement("a");
-    link.href = image.processedUrl;
+    // Créer un canvas temporaire pour s'assurer que l'image est téléchargeable
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
     
-    const fileName = image.originalFile.name.replace(/\.[^/.]+$/, "");
-    link.download = `${fileName}_plie.png`;
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        
+        // Convertir en blob et télécharger
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            
+            const fileName = image.originalFile.name.replace(/\.[^/.]+$/, "");
+            link.download = `${fileName}_plie.png`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Nettoyer l'URL temporaire
+            URL.revokeObjectURL(url);
+            toast.success("Image téléchargée");
+          } else {
+            toast.error("Erreur lors du téléchargement");
+          }
+        }, "image/png");
+      }
+    };
     
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    img.onerror = () => {
+      toast.error("Erreur lors du chargement de l'image");
+    };
     
-    toast.success("Image téléchargée");
+    img.src = image.processedUrl;
   };
 
   const downloadAll = () => {
