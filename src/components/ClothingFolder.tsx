@@ -120,48 +120,36 @@ export const ClothingFolder = () => {
     toast.success(`Gabarit ${CLOTHING_TEMPLATES[selectedType].name} mis à jour`);
   };
 
-  const downloadImage = (image: ProcessedImage) => {
-    // Créer un canvas temporaire pour s'assurer que l'image est téléchargeable
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
+  const downloadImage = async (image: ProcessedImage) => {
+    try {
+      // Récupérer le blob depuis l'URL
+      const response = await fetch(image.processedUrl);
+      const blob = await response.blob();
       
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        
-        // Convertir en blob et télécharger
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            
-            const fileName = image.originalFile.name.replace(/\.[^/.]+$/, "");
-            link.download = `${fileName}_plie.png`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Nettoyer l'URL temporaire
-            URL.revokeObjectURL(url);
-            toast.success("Image téléchargée");
-          } else {
-            toast.error("Erreur lors du téléchargement");
-          }
-        }, "image/png");
-      }
-    };
-    
-    img.onerror = () => {
-      toast.error("Erreur lors du chargement de l'image");
-    };
-    
-    img.src = image.processedUrl;
+      // Créer l'URL de téléchargement
+      const downloadUrl = URL.createObjectURL(blob);
+      
+      // Créer et déclencher le téléchargement
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${image.originalFile.name.replace(/\.[^/.]+$/, "")}_plie.png`;
+      link.style.display = "none";
+      
+      // Ajouter au DOM, cliquer, puis nettoyer
+      document.body.appendChild(link);
+      link.click();
+      
+      // Nettoyer après un court délai
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+      }, 100);
+      
+      toast.success("Image téléchargée");
+    } catch (error) {
+      console.error("Erreur de téléchargement:", error);
+      toast.error("Erreur lors du téléchargement");
+    }
   };
 
   const downloadAll = () => {
