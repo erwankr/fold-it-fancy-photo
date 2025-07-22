@@ -132,23 +132,32 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
   };
 
   const handleSave = () => {
-    if (!currentRect || !canvasRef.current) {
+    if (!currentRect || !canvasRef.current || !imageRef.current) {
       toast.error("Veuillez sélectionner une zone de recadrage");
       return;
     }
 
     const canvas = canvasRef.current;
-    const scaleX = imageSize.width / canvas.width;
-    const scaleY = imageSize.height / canvas.height;
+    const img = imageRef.current;
+    
+    // Calculer les ratios de redimensionnement
+    const scaleX = img.naturalWidth / canvas.width;
+    const scaleY = img.naturalHeight / canvas.height;
 
+    // Convertir les coordonnées du canvas vers l'image originale
     const settings: CropSettings = {
-      x: currentRect.x * scaleX,
-      y: currentRect.y * scaleY,
-      width: currentRect.width * scaleX,
-      height: currentRect.height * scaleY,
-      finalWidth: Math.min(300, currentRect.width * 2),
-      finalHeight: Math.min(250, currentRect.height * 2)
+      x: Math.round(currentRect.x * scaleX),
+      y: Math.round(currentRect.y * scaleY),
+      width: Math.round(currentRect.width * scaleX),
+      height: Math.round(currentRect.height * scaleY),
+      finalWidth: 300,
+      finalHeight: 250
     };
+
+    console.log("Sauvegarde du gabarit:", settings);
+    console.log("Image originale:", img.naturalWidth, "x", img.naturalHeight);
+    console.log("Canvas:", canvas.width, "x", canvas.height);
+    console.log("Scale:", scaleX, scaleY);
 
     onSaveTemplate(settings);
     toast.success(`Gabarit ${clothingType} sauvegardé`);
