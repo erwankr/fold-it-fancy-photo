@@ -10,6 +10,7 @@ interface CropSettings {
   yPercent: number;  // Position Y en pourcentage (0-1)
   widthPercent: number;  // Largeur en pourcentage (0-1)
   heightPercent: number; // Hauteur en pourcentage (0-1)
+  targetAspectRatio: number;  // Ratio cible (largeur/hauteur)
   maxFinalWidth: number;   // Largeur maximale souhaitée
   maxFinalHeight: number;  // Hauteur maximale souhaitée
 }
@@ -154,24 +155,28 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
     const widthPercent = width / img.naturalWidth;
     const heightPercent = height / img.naturalHeight;
     
-    // Calculer les dimensions finales basées sur l'aire relative
-    // Plus la zone est petite, plus on agrandit (mais avec des limites)
+    // Calculer l'aspect ratio de la sélection pour ce gabarit
+    const selectedAspectRatio = width / height;
+    
+    // Calculer les dimensions finales basées sur l'aire relative mais avec un aspect ratio fixe
     const areaPercent = widthPercent * heightPercent;
-    const scaleFactor = Math.max(0.3, Math.min(1.5, 1 / Math.sqrt(areaPercent)));
+    const scaleFactor = Math.max(0.5, Math.min(2.0, 1 / Math.sqrt(areaPercent)));
     
     const settings: CropSettings = {
       xPercent: x / img.naturalWidth,
       yPercent: y / img.naturalHeight,
       widthPercent,
       heightPercent,
+      targetAspectRatio: selectedAspectRatio, // Utiliser l'aspect ratio de la sélection
       maxFinalWidth: Math.round(300 * scaleFactor),
-      maxFinalHeight: Math.round(250 * scaleFactor)
+      maxFinalHeight: Math.round(400 * scaleFactor)
     };
 
-    console.log("Sauvegarde du gabarit avec aire relative:", {
+    console.log("Sauvegarde du gabarit avec aspect ratio fixe:", {
       ...settings,
       areaPercent,
-      scaleFactor
+      scaleFactor,
+      selectedAspectRatio
     });
 
     onSaveTemplate(settings);

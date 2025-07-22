@@ -20,6 +20,7 @@ interface CropSettings {
   yPercent: number;  // Position Y en pourcentage (0-1)
   widthPercent: number;  // Largeur en pourcentage (0-1)
   heightPercent: number; // Hauteur en pourcentage (0-1)
+  targetAspectRatio: number;  // Ratio cible (largeur/hauteur)
   maxFinalWidth: number;   // Largeur maximale souhaitée
   maxFinalHeight: number;  // Hauteur maximale souhaitée
 }
@@ -35,20 +36,22 @@ const CLOTHING_TEMPLATES = {
       yPercent: 0.2,
       widthPercent: 0.8,
       heightPercent: 0.6,
+      targetAspectRatio: 1.2, // 1.2:1 (un peu plus large que haut)
       maxFinalWidth: 300,
-      maxFinalHeight: 200
+      maxFinalHeight: 250
     }
   },
   tshirt: {
-    name: "T-Shirt",
+    name: "T-Shirt", 
     icon: Shirt,
     defaultSettings: {
       xPercent: 0.15,
-      yPercent: 0.1,
+      yPercent: 0.05, // Commencer plus haut pour inclure le col
       widthPercent: 0.7,
-      heightPercent: 0.8,
-      maxFinalWidth: 250,
-      maxFinalHeight: 180
+      heightPercent: 0.9, // Prendre plus de hauteur
+      targetAspectRatio: 0.6, // 600/1000 = 0.6 (plus haut que large)
+      maxFinalWidth: 240,
+      maxFinalHeight: 400
     }
   },
   chemise: {
@@ -56,11 +59,12 @@ const CLOTHING_TEMPLATES = {
     icon: Shirt,
     defaultSettings: {
       xPercent: 0.1,
-      yPercent: 0.05,
+      yPercent: 0.02, // Encore plus haut pour le col de chemise
       widthPercent: 0.8,
-      heightPercent: 0.9,
-      maxFinalWidth: 280,
-      maxFinalHeight: 200
+      heightPercent: 0.95,
+      targetAspectRatio: 0.65, // Similaire au t-shirt mais un peu plus large
+      maxFinalWidth: 260,
+      maxFinalHeight: 400
     }
   }
 };
