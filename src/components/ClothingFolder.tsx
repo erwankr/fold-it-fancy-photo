@@ -3,10 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, Download, Trash2, Settings, Shirt, Car, Scissors } from "lucide-react";
+import { Upload, Download, Trash2, Settings, Shirt, Car } from "lucide-react";
 import { TemplateEditor } from "./TemplateEditor";
 import { processImageWithTemplate } from "./ImageProcessor";
-import { removeBackground, loadImage } from "@/lib/backgroundRemoval";
 import JSZip from "jszip";
 
 interface ProcessedImage {
@@ -75,7 +74,6 @@ export const ClothingFolder = () => {
   const [selectedType, setSelectedType] = useState<ClothingType>("jean");
   const [uploadedImages, setUploadedImages] = useState<ProcessedImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isRemovingBackground, setIsRemovingBackground] = useState<string | null>(null);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [customTemplates, setCustomTemplates] = useState<Record<ClothingType, CropSettings>>({
@@ -185,29 +183,6 @@ export const ClothingFolder = () => {
     setUploadedImages([]);
   };
 
-  const handleRemoveBackground = async (image: ProcessedImage) => {
-    setIsRemovingBackground(image.id);
-    try {
-      // Charger l'image traitée
-      const img = await loadImage(await fetch(image.processedUrl).then(res => res.blob()));
-      
-      // Supprimer l'arrière-plan
-      const backgroundRemovedBlob = await removeBackground(img);
-      
-      // Créer un lien de téléchargement
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(backgroundRemovedBlob);
-      link.download = `${image.originalFile.name.replace(/\.[^/.]+$/, "")}_detoure.png`;
-      link.click();
-      
-      toast.success("Image détourée téléchargée");
-    } catch (error) {
-      console.error("Erreur lors du détourage:", error);
-      toast.error("Erreur lors du détourage de l'image");
-    } finally {
-      setIsRemovingBackground(null);
-    }
-  };
 
   if (showTemplateEditor && templateImageFile) {
     return (
@@ -358,33 +333,21 @@ export const ClothingFolder = () => {
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => downloadImage(image)}
-                          className="flex-1"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Télécharger
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => removeImage(image.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="flex gap-2">
                       <Button 
                         size="sm" 
-                        variant="secondary"
-                        onClick={() => handleRemoveBackground(image)}
-                        disabled={isRemovingBackground === image.id}
-                        className="w-full"
+                        onClick={() => downloadImage(image)}
+                        className="flex-1"
                       >
-                        <Scissors className="w-4 h-4 mr-2" />
-                        {isRemovingBackground === image.id ? "Détourage..." : "Détourage PNG"}
+                        <Download className="w-4 h-4 mr-1" />
+                        Télécharger
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => removeImage(image.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardContent>
