@@ -7,6 +7,7 @@ import { Upload, Download, Trash2, Settings, Shirt, Car, Scissors } from "lucide
 import { TemplateEditor } from "./TemplateEditor";
 import { processImageWithTemplate } from "./ImageProcessor";
 import { removeBackground, loadImage } from "@/lib/backgroundRemoval";
+import JSZip from "jszip";
 
 interface ProcessedImage {
   id: string;
@@ -134,10 +135,34 @@ export const ClothingFolder = () => {
     toast.success("Image téléchargée");
   };
 
-  const downloadAll = () => {
-    uploadedImages.forEach(image => {
-      setTimeout(() => downloadImage(image), 100);
-    });
+  const downloadAll = async () => {
+    if (uploadedImages.length === 0) return;
+
+    try {
+      const zip = new JSZip();
+      
+      // Ajouter chaque image traitée dans le ZIP
+      for (const image of uploadedImages) {
+        const response = await fetch(image.processedUrl);
+        const blob = await response.blob();
+        const filename = `${image.originalFile.name.replace(/\.[^/.]+$/, "")}_${CLOTHING_TEMPLATES[image.type].name.toLowerCase()}_plie.png`;
+        zip.file(filename, blob);
+      }
+      
+      // Générer le fichier ZIP
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      
+      // Télécharger l'archive ZIP
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `vetements_plies_${new Date().toISOString().split('T')[0]}.zip`;
+      link.click();
+      
+      toast.success(`${uploadedImages.length} images téléchargées dans un fichier ZIP`);
+    } catch (error) {
+      console.error("Erreur lors de la création du ZIP:", error);
+      toast.error("Erreur lors de la création du fichier ZIP");
+    }
   };
 
   const removeImage = (id: string) => {
