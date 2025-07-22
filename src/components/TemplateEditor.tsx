@@ -10,8 +10,8 @@ interface CropSettings {
   yPercent: number;  // Position Y en pourcentage (0-1)
   widthPercent: number;  // Largeur en pourcentage (0-1)
   heightPercent: number; // Hauteur en pourcentage (0-1)
-  finalWidth: number;
-  finalHeight: number;
+  maxFinalWidth: number;   // Largeur maximale souhaitée
+  maxFinalHeight: number;  // Hauteur maximale souhaitée
 }
 
 interface TemplateEditorProps {
@@ -151,16 +151,28 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
     const height = currentRect.height * scaleY;
     
     // Convertir en pourcentages de l'image originale
+    const widthPercent = width / img.naturalWidth;
+    const heightPercent = height / img.naturalHeight;
+    
+    // Calculer les dimensions finales basées sur l'aire relative
+    // Plus la zone est petite, plus on agrandit (mais avec des limites)
+    const areaPercent = widthPercent * heightPercent;
+    const scaleFactor = Math.max(0.3, Math.min(1.5, 1 / Math.sqrt(areaPercent)));
+    
     const settings: CropSettings = {
       xPercent: x / img.naturalWidth,
       yPercent: y / img.naturalHeight,
-      widthPercent: width / img.naturalWidth,
-      heightPercent: height / img.naturalHeight,
-      finalWidth: 300,
-      finalHeight: 250
+      widthPercent,
+      heightPercent,
+      maxFinalWidth: Math.round(300 * scaleFactor),
+      maxFinalHeight: Math.round(250 * scaleFactor)
     };
 
-    console.log("Sauvegarde du gabarit en pourcentages:", settings);
+    console.log("Sauvegarde du gabarit avec aire relative:", {
+      ...settings,
+      areaPercent,
+      scaleFactor
+    });
 
     onSaveTemplate(settings);
     toast.success(`Gabarit ${clothingType} sauvegardé`);

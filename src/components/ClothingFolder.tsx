@@ -20,8 +20,8 @@ interface CropSettings {
   yPercent: number;  // Position Y en pourcentage (0-1)
   widthPercent: number;  // Largeur en pourcentage (0-1)
   heightPercent: number; // Hauteur en pourcentage (0-1)
-  finalWidth: number;
-  finalHeight: number;
+  maxFinalWidth: number;   // Largeur maximale souhaitée
+  maxFinalHeight: number;  // Hauteur maximale souhaitée
 }
 
 type ClothingType = "jean" | "tshirt" | "chemise";
@@ -35,8 +35,8 @@ const CLOTHING_TEMPLATES = {
       yPercent: 0.2,
       widthPercent: 0.8,
       heightPercent: 0.6,
-      finalWidth: 300,
-      finalHeight: 200
+      maxFinalWidth: 300,
+      maxFinalHeight: 200
     }
   },
   tshirt: {
@@ -47,8 +47,8 @@ const CLOTHING_TEMPLATES = {
       yPercent: 0.1,
       widthPercent: 0.7,
       heightPercent: 0.8,
-      finalWidth: 250,
-      finalHeight: 180
+      maxFinalWidth: 250,
+      maxFinalHeight: 180
     }
   },
   chemise: {
@@ -59,8 +59,8 @@ const CLOTHING_TEMPLATES = {
       yPercent: 0.05,
       widthPercent: 0.8,
       heightPercent: 0.9,
-      finalWidth: 280,
-      finalHeight: 200
+      maxFinalWidth: 280,
+      maxFinalHeight: 200
     }
   }
 };

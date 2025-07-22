@@ -4,8 +4,8 @@ interface CropSettings {
   yPercent: number;  // Position Y en pourcentage (0-1)
   widthPercent: number;  // Largeur en pourcentage (0-1)
   heightPercent: number; // Hauteur en pourcentage (0-1)
-  finalWidth: number;
-  finalHeight: number;
+  maxFinalWidth: number;   // Largeur maximale souhaitée
+  maxFinalHeight: number;  // Hauteur maximale souhaitée
 }
 
 export const processImageWithTemplate = (file: File, cropSettings: CropSettings): Promise<{
@@ -20,7 +20,7 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
     const img = new Image();
 
     img.onload = () => {
-      const { xPercent, yPercent, widthPercent, heightPercent, finalWidth, finalHeight } = cropSettings;
+      const { xPercent, yPercent, widthPercent, heightPercent, maxFinalWidth, maxFinalHeight } = cropSettings;
       
       // Convertir les pourcentages en coordonnées pixel pour cette image
       const x = Math.round(xPercent * img.naturalWidth);
@@ -28,39 +28,65 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
       const width = Math.round(widthPercent * img.naturalWidth);
       const height = Math.round(heightPercent * img.naturalHeight);
       
-      console.log("Processing image with template:", {
+      // Calculer les dimensions finales en maintenant les proportions
+      const cropAspectRatio = width / height;
+      const maxAspectRatio = maxFinalWidth / maxFinalHeight;
+      
+      let finalWidth, finalHeight;
+      
+      if (cropAspectRatio > maxAspectRatio) {
+        // La zone croppée est plus large, on limite par la largeur
+        finalWidth = maxFinalWidth;
+        finalHeight = Math.round(maxFinalWidth / cropAspectRatio);
+      } else {
+        // La zone croppée est plus haute, on limite par la hauteur
+        finalHeight = maxFinalHeight;
+        finalWidth = Math.round(maxFinalHeight * cropAspectRatio);
+      }
+      
+      console.log("Processing image with adaptive sizing:", {
         originalPercents: { xPercent, yPercent, widthPercent, heightPercent },
         convertedPixels: { x, y, width, height },
-        imageDimensions: [img.naturalWidth, img.naturalHeight]
+        imageDimensions: [img.naturalWidth, img.naturalHeight],
+        cropAspectRatio,
+        finalDimensions: [finalWidth, finalHeight]
       });
 
       // Vérifier que les coordonnées sont valides
       if (x < 0 || y < 0 || x + width > img.naturalWidth || y + height > img.naturalHeight) {
         console.warn("Coordonnées de crop invalides, utilisation de l'image complète");
-        // Utiliser l'image complète avec aspect ratio
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-        const targetAspectRatio = finalWidth / finalHeight;
         
-        let sourceX = 0, sourceY = 0, sourceWidth = img.naturalWidth, sourceHeight = img.naturalHeight;
-        
-        if (aspectRatio > targetAspectRatio) {
-          sourceWidth = img.naturalHeight * targetAspectRatio;
-          sourceX = (img.naturalWidth - sourceWidth) / 2;
-        } else {
-          sourceHeight = img.naturalWidth / targetAspectRatio;
-          sourceY = (img.naturalHeight - sourceHeight) / 2;
-        }
-        
+        finalWidth = maxFinalWidth;
+        finalHeight = maxFinalHeight;
         canvas.width = finalWidth;
         canvas.height = finalHeight;
         
         if (ctx) {
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, finalWidth, finalHeight);
+          
+          // Redimensionner l'image complète en conservant les proportions
+          const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+          const canvasAspectRatio = finalWidth / finalHeight;
+          
+          let drawWidth, drawHeight, drawX, drawY;
+          
+          if (imgAspectRatio > canvasAspectRatio) {
+            drawWidth = finalWidth;
+            drawHeight = finalWidth / imgAspectRatio;
+            drawX = 0;
+            drawY = (finalHeight - drawHeight) / 2;
+          } else {
+            drawHeight = finalHeight;
+            drawWidth = finalHeight * imgAspectRatio;
+            drawX = (finalWidth - drawWidth) / 2;
+            drawY = 0;
+          }
+          
+          ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, drawX, drawY, drawWidth, drawHeight);
         }
       } else {
-        // Utiliser le gabarit défini
+        // Utiliser le gabarit défini avec dimensions adaptatives
         canvas.width = finalWidth;
         canvas.height = finalHeight;
 
@@ -75,7 +101,10 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
             0, 0, finalWidth, finalHeight
           );
           
-          console.log("Image processed successfully with crop:", { x, y, width, height });
+          console.log("Image processed successfully with adaptive crop:", { 
+            source: { x, y, width, height },
+            destination: { width: finalWidth, height: finalHeight }
+          });
         }
       }
 
