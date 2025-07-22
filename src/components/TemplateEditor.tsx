@@ -116,10 +116,18 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
       ctx.lineWidth = 2;
       ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
       
-      // Overlay semi-transparent
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+      // Assombrir tout sauf la zone sélectionnée
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      
+      // Dessiner l'overlay en 4 rectangles autour de la sélection
+      // Au-dessus
+      ctx.fillRect(0, 0, canvas.width, rect.y);
+      // À gauche
+      ctx.fillRect(0, rect.y, rect.x, rect.height);
+      // À droite
+      ctx.fillRect(rect.x + rect.width, rect.y, canvas.width - rect.x - rect.width, rect.height);
+      // En dessous
+      ctx.fillRect(0, rect.y + rect.height, canvas.width, canvas.height - rect.y - rect.height);
     }
   };
 
