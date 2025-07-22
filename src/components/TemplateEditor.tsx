@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -146,7 +146,7 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
     toast.success(`Gabarit ${clothingType} sauvegardé`);
   };
 
-  useState(() => {
+  useEffect(() => {
     loadImage();
   }, [loadImage]);
 
