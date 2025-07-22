@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 
 interface CropSettings {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  xPercent: number;  // Position X en pourcentage (0-1)
+  yPercent: number;  // Position Y en pourcentage (0-1)
+  widthPercent: number;  // Largeur en pourcentage (0-1)
+  heightPercent: number; // Hauteur en pourcentage (0-1)
   finalWidth: number;
   finalHeight: number;
 }
@@ -145,19 +145,22 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
     const scaleY = img.naturalHeight / canvas.height;
 
     // Convertir les coordonnées du canvas vers l'image originale
+    const x = currentRect.x * scaleX;
+    const y = currentRect.y * scaleY;
+    const width = currentRect.width * scaleX;
+    const height = currentRect.height * scaleY;
+    
+    // Convertir en pourcentages de l'image originale
     const settings: CropSettings = {
-      x: Math.round(currentRect.x * scaleX),
-      y: Math.round(currentRect.y * scaleY),
-      width: Math.round(currentRect.width * scaleX),
-      height: Math.round(currentRect.height * scaleY),
+      xPercent: x / img.naturalWidth,
+      yPercent: y / img.naturalHeight,
+      widthPercent: width / img.naturalWidth,
+      heightPercent: height / img.naturalHeight,
       finalWidth: 300,
       finalHeight: 250
     };
 
-    console.log("Sauvegarde du gabarit:", settings);
-    console.log("Image originale:", img.naturalWidth, "x", img.naturalHeight);
-    console.log("Canvas:", canvas.width, "x", canvas.height);
-    console.log("Scale:", scaleX, scaleY);
+    console.log("Sauvegarde du gabarit en pourcentages:", settings);
 
     onSaveTemplate(settings);
     toast.success(`Gabarit ${clothingType} sauvegardé`);

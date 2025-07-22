@@ -1,9 +1,9 @@
 
 interface CropSettings {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  xPercent: number;  // Position X en pourcentage (0-1)
+  yPercent: number;  // Position Y en pourcentage (0-1)
+  widthPercent: number;  // Largeur en pourcentage (0-1)
+  heightPercent: number; // Hauteur en pourcentage (0-1)
   finalWidth: number;
   finalHeight: number;
 }
@@ -20,26 +20,33 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
     const img = new Image();
 
     img.onload = () => {
-      const { x, y, width, height, finalWidth, finalHeight } = cropSettings;
+      const { xPercent, yPercent, widthPercent, heightPercent, finalWidth, finalHeight } = cropSettings;
       
-      console.log("Processing image with template:", cropSettings);
-      console.log("Image dimensions:", img.naturalWidth, "x", img.naturalHeight);
+      // Convertir les pourcentages en coordonnées pixel pour cette image
+      const x = Math.round(xPercent * img.naturalWidth);
+      const y = Math.round(yPercent * img.naturalHeight);  
+      const width = Math.round(widthPercent * img.naturalWidth);
+      const height = Math.round(heightPercent * img.naturalHeight);
+      
+      console.log("Processing image with template:", {
+        originalPercents: { xPercent, yPercent, widthPercent, heightPercent },
+        convertedPixels: { x, y, width, height },
+        imageDimensions: [img.naturalWidth, img.naturalHeight]
+      });
 
       // Vérifier que les coordonnées sont valides
       if (x < 0 || y < 0 || x + width > img.naturalWidth || y + height > img.naturalHeight) {
         console.warn("Coordonnées de crop invalides, utilisation de l'image complète");
-        // Utiliser l'image complète si les coordonnées sont invalides
+        // Utiliser l'image complète avec aspect ratio
         const aspectRatio = img.naturalWidth / img.naturalHeight;
         const targetAspectRatio = finalWidth / finalHeight;
         
         let sourceX = 0, sourceY = 0, sourceWidth = img.naturalWidth, sourceHeight = img.naturalHeight;
         
         if (aspectRatio > targetAspectRatio) {
-          // Image plus large, recadrer horizontalement
           sourceWidth = img.naturalHeight * targetAspectRatio;
           sourceX = (img.naturalWidth - sourceWidth) / 2;
         } else {
-          // Image plus haute, recadrer verticalement  
           sourceHeight = img.naturalWidth / targetAspectRatio;
           sourceY = (img.naturalHeight - sourceHeight) / 2;
         }
@@ -67,6 +74,8 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
             x, y, width, height,
             0, 0, finalWidth, finalHeight
           );
+          
+          console.log("Image processed successfully with crop:", { x, y, width, height });
         }
       }
 

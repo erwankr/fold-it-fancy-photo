@@ -16,10 +16,10 @@ interface ProcessedImage {
 }
 
 interface CropSettings {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  xPercent: number;  // Position X en pourcentage (0-1)
+  yPercent: number;  // Position Y en pourcentage (0-1)
+  widthPercent: number;  // Largeur en pourcentage (0-1)
+  heightPercent: number; // Hauteur en pourcentage (0-1)
   finalWidth: number;
   finalHeight: number;
 }
@@ -31,10 +31,10 @@ const CLOTHING_TEMPLATES = {
     name: "Jean",
     icon: Car,
     defaultSettings: {
-      x: 0,
-      y: 0,
-      width: 200,
-      height: 150,
+      xPercent: 0.1,
+      yPercent: 0.2,
+      widthPercent: 0.8,
+      heightPercent: 0.6,
       finalWidth: 300,
       finalHeight: 200
     }
@@ -43,10 +43,10 @@ const CLOTHING_TEMPLATES = {
     name: "T-Shirt",
     icon: Shirt,
     defaultSettings: {
-      x: 0,
-      y: 0,
-      width: 200,
-      height: 180,
+      xPercent: 0.15,
+      yPercent: 0.1,
+      widthPercent: 0.7,
+      heightPercent: 0.8,
       finalWidth: 250,
       finalHeight: 180
     }
@@ -55,10 +55,10 @@ const CLOTHING_TEMPLATES = {
     name: "Chemise",
     icon: Shirt,
     defaultSettings: {
-      x: 0,
-      y: 0,
-      width: 220,
-      height: 180,
+      xPercent: 0.1,
+      yPercent: 0.05,
+      widthPercent: 0.8,
+      heightPercent: 0.9,
       finalWidth: 280,
       finalHeight: 200
     }
