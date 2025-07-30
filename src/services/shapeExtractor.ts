@@ -199,27 +199,30 @@ export const extractShapeContours = async (imageUrl: string): Promise<THREE.Vect
   });
 };
 
-// Create 3D geometry from contour points
+// Create 3D geometry from contour points with smooth, rounded edges
 export const createGeometryFromContours = (contourPoints: THREE.Vector2[]): THREE.ExtrudeGeometry => {
+  const extrudeSettings = {
+    depth: 0.15,
+    bevelEnabled: true,
+    bevelThickness: 0.08,
+    bevelSize: 0.12,
+    bevelSegments: 12,
+    curveSegments: 16
+  };
+
   if (contourPoints.length < 3) {
-    // Fallback to simple rectangle if no contours found
+    // Fallback to smooth rounded rectangle if no contours found
     const shape = new THREE.Shape();
-    shape.moveTo(-1, -1);
-    shape.lineTo(1, -1);
-    shape.lineTo(1, 1);
-    shape.lineTo(-1, 1);
-    shape.lineTo(-1, -1);
+    shape.moveTo(-1.2, 1.2);
+    shape.bezierCurveTo(-1.2, 1.5, -1, 1.5, 1, 1.5);
+    shape.bezierCurveTo(1.2, 1.5, 1.2, 1.2, 1.2, -1.2);
+    shape.bezierCurveTo(1.2, -1.5, 1, -1.5, -1, -1.5);
+    shape.bezierCurveTo(-1.2, -1.5, -1.2, -1.2, -1.2, 1.2);
     
-    return new THREE.ExtrudeGeometry(shape, {
-      depth: 0.1,
-      bevelEnabled: true,
-      bevelThickness: 0.02,
-      bevelSize: 0.02,
-      bevelSegments: 5
-    });
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
   }
   
-  // Create a shape from contour points
+  // Create a smooth shape from contour points using curves
   const shape = new THREE.Shape();
   
   // Sort points to create a proper shape outline
@@ -233,20 +236,29 @@ export const createGeometryFromContours = (contourPoints: THREE.Vector2[]): THRE
   if (sortedPoints.length > 0) {
     shape.moveTo(sortedPoints[0].x, sortedPoints[0].y);
     
-    // Add remaining points
+    // Create smooth curves between points instead of straight lines
     for (let i = 1; i < sortedPoints.length; i++) {
-      shape.lineTo(sortedPoints[i].x, sortedPoints[i].y);
+      const current = sortedPoints[i];
+      const next = sortedPoints[(i + 1) % sortedPoints.length];
+      const prev = sortedPoints[i - 1];
+      
+      // Calculate control points for smooth curves
+      const cp1x = prev.x + (current.x - prev.x) * 0.7;
+      const cp1y = prev.y + (current.y - prev.y) * 0.7;
+      const cp2x = current.x + (next.x - current.x) * 0.3;
+      const cp2y = current.y + (next.y - current.y) * 0.3;
+      
+      // Use quadratic curve for smoother edges
+      shape.quadraticCurveTo(cp1x, cp1y, current.x, current.y);
     }
     
-    // Close the shape
-    shape.lineTo(sortedPoints[0].x, sortedPoints[0].y);
+    // Close the shape smoothly
+    const first = sortedPoints[0];
+    const last = sortedPoints[sortedPoints.length - 1];
+    const cp1x = last.x + (first.x - last.x) * 0.7;
+    const cp1y = last.y + (first.y - last.y) * 0.7;
+    shape.quadraticCurveTo(cp1x, cp1y, first.x, first.y);
   }
   
-  return new THREE.ExtrudeGeometry(shape, {
-    depth: 0.1,
-    bevelEnabled: true,
-    bevelThickness: 0.02,
-    bevelSize: 0.02,
-    bevelSegments: 5
-  });
+  return new THREE.ExtrudeGeometry(shape, extrudeSettings);
 };

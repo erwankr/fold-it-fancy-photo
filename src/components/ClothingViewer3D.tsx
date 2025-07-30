@@ -13,78 +13,90 @@ interface ClothingViewer3DProps {
   onDownload?: () => void;
 }
 
-// Géométries 3D pour chaque type de vêtement
+// Géométries 3D pour chaque type de vêtement avec bords arrondis
 const createClothingGeometry = (type: string) => {
+  const extrudeSettings = {
+    depth: 0.15,
+    bevelEnabled: true,
+    bevelThickness: 0.08,
+    bevelSize: 0.12,
+    bevelSegments: 12,
+    curveSegments: 16
+  };
+
   switch (type) {
     case 'jean':
-      // Forme de pantalon/jean
+      // Forme de pantalon/jean avec courbes douces
       const jeanShape = new THREE.Shape();
-      jeanShape.moveTo(-1, 2);
-      jeanShape.lineTo(-1.2, 1);
-      jeanShape.lineTo(-0.8, -1);
-      jeanShape.lineTo(-0.6, -2);
-      jeanShape.lineTo(0.6, -2);
-      jeanShape.lineTo(0.8, -1);
-      jeanShape.lineTo(1.2, 1);
-      jeanShape.lineTo(1, 2);
-      jeanShape.lineTo(-1, 2);
+      jeanShape.moveTo(-0.9, 1.8);
+      jeanShape.bezierCurveTo(-1.1, 1.6, -1.2, 1.2, -1.1, 0.8);
+      jeanShape.bezierCurveTo(-0.9, 0.2, -0.8, -0.5, -0.7, -1.2);
+      jeanShape.bezierCurveTo(-0.65, -1.6, -0.6, -1.9, -0.5, -2);
+      jeanShape.bezierCurveTo(-0.2, -2.1, 0.2, -2.1, 0.5, -2);
+      jeanShape.bezierCurveTo(0.6, -1.9, 0.65, -1.6, 0.7, -1.2);
+      jeanShape.bezierCurveTo(0.8, -0.5, 0.9, 0.2, 1.1, 0.8);
+      jeanShape.bezierCurveTo(1.2, 1.2, 1.1, 1.6, 0.9, 1.8);
+      jeanShape.bezierCurveTo(0.5, 1.9, -0.5, 1.9, -0.9, 1.8);
       
-      return new THREE.ExtrudeGeometry(jeanShape, {
-        depth: 0.1,
-        bevelEnabled: true,
-        bevelThickness: 0.02,
-        bevelSize: 0.02,
-        bevelSegments: 5
-      });
+      return new THREE.ExtrudeGeometry(jeanShape, extrudeSettings);
 
     case 'tshirt':
-      // Forme de t-shirt
+      // Forme de t-shirt avec manches arrondies
       const tshirtShape = new THREE.Shape();
-      tshirtShape.moveTo(-1.5, 1.8);
-      tshirtShape.lineTo(-1.8, 1.5);
-      tshirtShape.lineTo(-1.8, 1.2);
-      tshirtShape.lineTo(-1.2, 1.2);
-      tshirtShape.lineTo(-1.2, -1.5);
-      tshirtShape.lineTo(1.2, -1.5);
-      tshirtShape.lineTo(1.2, 1.2);
-      tshirtShape.lineTo(1.8, 1.2);
-      tshirtShape.lineTo(1.8, 1.5);
-      tshirtShape.lineTo(1.5, 1.8);
-      tshirtShape.lineTo(-1.5, 1.8);
+      // Corps principal
+      tshirtShape.moveTo(-1.1, 1.6);
+      tshirtShape.bezierCurveTo(-1.1, 1.7, -1.2, 1.8, -1.4, 1.7);
+      // Manche gauche
+      tshirtShape.bezierCurveTo(-1.7, 1.6, -1.8, 1.4, -1.7, 1.2);
+      tshirtShape.bezierCurveTo(-1.6, 1.1, -1.3, 1.1, -1.1, 1.2);
+      // Descendre le long du corps
+      tshirtShape.bezierCurveTo(-1.1, 0.5, -1.1, -0.5, -1.1, -1.3);
+      tshirtShape.bezierCurveTo(-1.1, -1.6, -0.8, -1.7, -0.5, -1.6);
+      // Bas du t-shirt
+      tshirtShape.bezierCurveTo(0, -1.6, 0.5, -1.6, 1.1, -1.3);
+      tshirtShape.bezierCurveTo(1.1, -0.5, 1.1, 0.5, 1.1, 1.2);
+      // Manche droite
+      tshirtShape.bezierCurveTo(1.3, 1.1, 1.6, 1.1, 1.7, 1.2);
+      tshirtShape.bezierCurveTo(1.8, 1.4, 1.7, 1.6, 1.4, 1.7);
+      tshirtShape.bezierCurveTo(1.2, 1.8, 1.1, 1.7, 1.1, 1.6);
+      // Retour au début
+      tshirtShape.bezierCurveTo(0.5, 1.7, -0.5, 1.7, -1.1, 1.6);
       
-      return new THREE.ExtrudeGeometry(tshirtShape, {
-        depth: 0.1,
-        bevelEnabled: true,
-        bevelThickness: 0.02,
-        bevelSize: 0.02,
-        bevelSegments: 5
-      });
+      return new THREE.ExtrudeGeometry(tshirtShape, extrudeSettings);
 
     case 'chemise':
-      // Forme de chemise (similar to t-shirt but with collar)
+      // Forme de chemise avec col arrondi
       const chemiseShape = new THREE.Shape();
-      chemiseShape.moveTo(-1.3, 2);
-      chemiseShape.lineTo(-1.6, 1.7);
-      chemiseShape.lineTo(-1.6, 1.4);
-      chemiseShape.lineTo(-1.1, 1.4);
-      chemiseShape.lineTo(-1.1, -1.8);
-      chemiseShape.lineTo(1.1, -1.8);
-      chemiseShape.lineTo(1.1, 1.4);
-      chemiseShape.lineTo(1.6, 1.4);
-      chemiseShape.lineTo(1.6, 1.7);
-      chemiseShape.lineTo(1.3, 2);
-      chemiseShape.lineTo(-1.3, 2);
+      // Col de chemise arrondi
+      chemiseShape.moveTo(-1.0, 1.8);
+      chemiseShape.bezierCurveTo(-1.2, 1.9, -1.4, 1.8, -1.5, 1.6);
+      // Manche gauche
+      chemiseShape.bezierCurveTo(-1.6, 1.5, -1.6, 1.3, -1.4, 1.3);
+      chemiseShape.bezierCurveTo(-1.2, 1.3, -1.0, 1.3, -1.0, 1.0);
+      // Corps de la chemise
+      chemiseShape.bezierCurveTo(-1.0, 0.2, -1.0, -0.8, -1.0, -1.6);
+      chemiseShape.bezierCurveTo(-1.0, -1.8, -0.7, -1.9, -0.4, -1.8);
+      // Bas arrondi
+      chemiseShape.bezierCurveTo(0, -1.8, 0.4, -1.8, 1.0, -1.6);
+      chemiseShape.bezierCurveTo(1.0, -0.8, 1.0, 0.2, 1.0, 1.0);
+      // Manche droite
+      chemiseShape.bezierCurveTo(1.0, 1.3, 1.2, 1.3, 1.4, 1.3);
+      chemiseShape.bezierCurveTo(1.6, 1.3, 1.6, 1.5, 1.5, 1.6);
+      chemiseShape.bezierCurveTo(1.4, 1.8, 1.2, 1.9, 1.0, 1.8);
+      // Retour au col
+      chemiseShape.bezierCurveTo(0.5, 1.9, -0.5, 1.9, -1.0, 1.8);
       
-      return new THREE.ExtrudeGeometry(chemiseShape, {
-        depth: 0.1,
-        bevelEnabled: true,
-        bevelThickness: 0.02,
-        bevelSize: 0.02,
-        bevelSegments: 5
-      });
+      return new THREE.ExtrudeGeometry(chemiseShape, extrudeSettings);
 
     default:
-      return new THREE.BoxGeometry(2, 3, 0.1);
+      // Forme par défaut avec bords arrondis
+      const defaultShape = new THREE.Shape();
+      defaultShape.moveTo(-1.5, 1.5);
+      defaultShape.bezierCurveTo(-1.5, 2, -1, 2, 1, 2);
+      defaultShape.bezierCurveTo(1.5, 2, 1.5, 1.5, 1.5, -1.5);
+      defaultShape.bezierCurveTo(1.5, -2, 1, -2, -1, -2);
+      defaultShape.bezierCurveTo(-1.5, -2, -1.5, -1.5, -1.5, 1.5);
+      return new THREE.ExtrudeGeometry(defaultShape, extrudeSettings);
   }
 };
 
