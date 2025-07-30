@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Button } from './ui/button';
 import { Download, RotateCcw } from 'lucide-react';
@@ -171,10 +171,8 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
         </Button>
       </div>
       
-      <div className="absolute bottom-2 left-2">
-        <Text fontSize={0.1} color="white">
-          Vue 3D - {clothingType.toUpperCase()}
-        </Text>
+      <div className="absolute bottom-2 left-2 text-sm text-white bg-black/50 px-2 py-1 rounded">
+        Vue 3D - {clothingType.toUpperCase()}
       </div>
     </div>
   );
