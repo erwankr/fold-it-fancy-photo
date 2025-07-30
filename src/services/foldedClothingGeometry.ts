@@ -21,37 +21,36 @@ export const createFoldedClothingGeometry = (
   }
 };
 
-// Crée un t-shirt plié simple par extrusion
+// Crée un t-shirt plié avec une forme organique
 const createFoldedTShirt = (width: number, height: number, depth: number) => {
   const group = new THREE.Group();
   
-  // Forme simple arrondie pour le corps principal seulement
+  // Forme organique pour le corps principal
   const mainShape = new THREE.Shape();
   
   const w = width * 0.5;
   const h = height * 0.6;
-  const radius = Math.min(w, h) * 0.08;
   
-  // Rectangle avec coins arrondis simples
-  mainShape.moveTo(-w + radius, -h);
-  mainShape.lineTo(w - radius, -h);
-  mainShape.quadraticCurveTo(w, -h, w, -h + radius);
-  mainShape.lineTo(w, h - radius);
-  mainShape.quadraticCurveTo(w, h, w - radius, h);
-  mainShape.lineTo(-w + radius, h);
-  mainShape.quadraticCurveTo(-w, h, -w, h - radius);
-  mainShape.lineTo(-w, -h + radius);
-  mainShape.quadraticCurveTo(-w, -h, -w + radius, -h);
+  // Créer une forme plus organique avec des courbes douces
+  mainShape.moveTo(-w * 0.9, -h * 0.8);
+  mainShape.bezierCurveTo(-w * 1.1, -h * 0.6, -w * 1.05, -h * 0.3, -w * 0.95, -h * 0.1);
+  mainShape.bezierCurveTo(-w * 0.9, h * 0.2, -w * 0.85, h * 0.5, -w * 0.8, h * 0.8);
+  mainShape.bezierCurveTo(-w * 0.6, h * 0.9, -w * 0.3, h * 0.85, 0, h * 0.9);
+  mainShape.bezierCurveTo(w * 0.3, h * 0.85, w * 0.6, h * 0.9, w * 0.8, h * 0.8);
+  mainShape.bezierCurveTo(w * 0.85, h * 0.5, w * 0.9, h * 0.2, w * 0.95, -h * 0.1);
+  mainShape.bezierCurveTo(w * 1.05, -h * 0.3, w * 1.1, -h * 0.6, w * 0.9, -h * 0.8);
+  mainShape.bezierCurveTo(w * 0.7, -h * 0.9, w * 0.3, -h * 0.85, 0, -h * 0.9);
+  mainShape.bezierCurveTo(-w * 0.3, -h * 0.85, -w * 0.7, -h * 0.9, -w * 0.9, -h * 0.8);
   
-  // Extrusion simple et propre
+  // Extrusion avec des paramètres pour une forme plus douce
   const extrudeSettings = {
     depth: depth * 0.2,
     bevelEnabled: true,
-    bevelSegments: 2,
-    steps: 1,
-    bevelSize: depth * 0.01,
-    bevelThickness: depth * 0.005,
-    curveSegments: 12
+    bevelSegments: 4,
+    steps: 2,
+    bevelSize: depth * 0.03,
+    bevelThickness: depth * 0.02,
+    curveSegments: 24
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(mainShape, extrudeSettings);
@@ -66,36 +65,35 @@ const createFoldedTShirt = (width: number, height: number, depth: number) => {
   return group;
 };
 
-// Crée un jean plié simple par extrusion
+// Crée un jean plié avec forme organique
 const createFoldedJeans = (width: number, height: number, depth: number) => {
   const group = new THREE.Group();
   
-  // Forme simple pour jean
+  // Forme organique pour jean
   const jeanShape = new THREE.Shape();
   
   const w = width * 0.4;
   const h = height * 0.8;
-  const radius = Math.min(w, h) * 0.06;
   
-  // Rectangle simple avec coins légèrement arrondis
-  jeanShape.moveTo(-w + radius, -h);
-  jeanShape.lineTo(w - radius, -h);
-  jeanShape.quadraticCurveTo(w, -h, w, -h + radius);
-  jeanShape.lineTo(w, h - radius);
-  jeanShape.quadraticCurveTo(w, h, w - radius, h);
-  jeanShape.lineTo(-w + radius, h);
-  jeanShape.quadraticCurveTo(-w, h, -w, h - radius);
-  jeanShape.lineTo(-w, -h + radius);
-  jeanShape.quadraticCurveTo(-w, -h, -w + radius, -h);
+  // Forme naturelle avec des irrégularités subtiles
+  jeanShape.moveTo(-w * 0.95, -h * 0.9);
+  jeanShape.bezierCurveTo(-w * 1.02, -h * 0.7, -w * 0.98, -h * 0.4, -w * 0.92, -h * 0.1);
+  jeanShape.bezierCurveTo(-w * 0.88, h * 0.1, -w * 0.85, h * 0.4, -w * 0.9, h * 0.7);
+  jeanShape.bezierCurveTo(-w * 0.7, h * 0.85, -w * 0.4, h * 0.9, 0, h * 0.88);
+  jeanShape.bezierCurveTo(w * 0.4, h * 0.9, w * 0.7, h * 0.85, w * 0.9, h * 0.7);
+  jeanShape.bezierCurveTo(w * 0.85, h * 0.4, w * 0.88, h * 0.1, w * 0.92, -h * 0.1);
+  jeanShape.bezierCurveTo(w * 0.98, -h * 0.4, w * 1.02, -h * 0.7, w * 0.95, -h * 0.9);
+  jeanShape.bezierCurveTo(w * 0.75, -h * 0.95, w * 0.35, -h * 0.92, 0, -h * 0.94);
+  jeanShape.bezierCurveTo(-w * 0.35, -h * 0.92, -w * 0.75, -h * 0.95, -w * 0.95, -h * 0.9);
   
   const jeanExtrudeSettings = {
     depth: depth * 0.3,
     bevelEnabled: true,
-    bevelSegments: 2,
-    steps: 1,
-    bevelSize: depth * 0.02,
-    bevelThickness: depth * 0.01,
-    curveSegments: 8
+    bevelSegments: 5,
+    steps: 3,
+    bevelSize: depth * 0.04,
+    bevelThickness: depth * 0.025,
+    curveSegments: 20
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(jeanShape, jeanExtrudeSettings);
@@ -110,36 +108,35 @@ const createFoldedJeans = (width: number, height: number, depth: number) => {
   return group;
 };
 
-// Crée une chemise pliée simple par extrusion
+// Crée une chemise pliée avec forme organique
 const createFoldedShirt = (width: number, height: number, depth: number) => {
   const group = new THREE.Group();
   
-  // Forme simple pour chemise
+  // Forme organique pour chemise
   const shirtShape = new THREE.Shape();
   
   const w = width * 0.45;
   const h = height * 0.7;
-  const radius = Math.min(w, h) * 0.05;
   
-  // Rectangle simple avec coins arrondis
-  shirtShape.moveTo(-w + radius, -h);
-  shirtShape.lineTo(w - radius, -h);
-  shirtShape.quadraticCurveTo(w, -h, w, -h + radius);
-  shirtShape.lineTo(w, h - radius);
-  shirtShape.quadraticCurveTo(w, h, w - radius, h);
-  shirtShape.lineTo(-w + radius, h);
-  shirtShape.quadraticCurveTo(-w, h, -w, h - radius);
-  shirtShape.lineTo(-w, -h + radius);
-  shirtShape.quadraticCurveTo(-w, -h, -w + radius, -h);
+  // Forme fluide avec des variations naturelles
+  shirtShape.moveTo(-w * 0.9, -h * 0.85);
+  shirtShape.bezierCurveTo(-w * 1.05, -h * 0.65, -w * 1.0, -h * 0.35, -w * 0.92, -h * 0.05);
+  shirtShape.bezierCurveTo(-w * 0.87, h * 0.15, -w * 0.83, h * 0.45, -w * 0.88, h * 0.75);
+  shirtShape.bezierCurveTo(-w * 0.65, h * 0.82, -w * 0.32, h * 0.78, 0, h * 0.8);
+  shirtShape.bezierCurveTo(w * 0.32, h * 0.78, w * 0.65, h * 0.82, w * 0.88, h * 0.75);
+  shirtShape.bezierCurveTo(w * 0.83, h * 0.45, w * 0.87, h * 0.15, w * 0.92, -h * 0.05);
+  shirtShape.bezierCurveTo(w * 1.0, -h * 0.35, w * 1.05, -h * 0.65, w * 0.9, -h * 0.85);
+  shirtShape.bezierCurveTo(w * 0.68, -h * 0.88, w * 0.33, -h * 0.83, 0, -h * 0.86);
+  shirtShape.bezierCurveTo(-w * 0.33, -h * 0.83, -w * 0.68, -h * 0.88, -w * 0.9, -h * 0.85);
   
   const shirtExtrudeSettings = {
     depth: depth * 0.15,
     bevelEnabled: true,
-    bevelSegments: 2,
-    steps: 1,
-    bevelSize: depth * 0.01,
-    bevelThickness: depth * 0.005,
-    curveSegments: 8
+    bevelSegments: 3,
+    steps: 2,
+    bevelSize: depth * 0.02,
+    bevelThickness: depth * 0.015,
+    curveSegments: 18
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(shirtShape, shirtExtrudeSettings);
