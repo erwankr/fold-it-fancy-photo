@@ -63,12 +63,9 @@ export const createFoldedClothingGeometry = (
   return geometry;
 };
 
-// Crée un t-shirt plié avec une forme organique
+// Crée un t-shirt plié avec une forme organique et des détails réalistes
 const createFoldedTShirt = (width: number, height: number, depth: number, cropSettings?: CropSettings) => {
   const group = new THREE.Group();
-  
-  // Forme organique pour le corps principal adaptée à la découpe
-  const mainShape = new THREE.Shape();
   
   // Adapter les proportions selon la découpe
   let w = width * 0.5;
@@ -77,52 +74,55 @@ const createFoldedTShirt = (width: number, height: number, depth: number, cropSe
   if (cropSettings) {
     const aspectRatio = cropSettings.targetAspectRatio;
     if (aspectRatio < 0.8) {
-      // Forme verticale pour t-shirt (plus haut que large)
       h = height * 0.8;
       w = width * 0.4;
     }
   }
   
-  // Créer une forme adaptée à la découpe
-  mainShape.moveTo(-w * 0.85, -h * 0.9);
-  mainShape.bezierCurveTo(-w * 0.95, -h * 0.7, -w * 0.9, -h * 0.4, -w * 0.85, -h * 0.1);
-  mainShape.bezierCurveTo(-w * 0.8, h * 0.2, -w * 0.75, h * 0.5, -w * 0.7, h * 0.8);
-  mainShape.bezierCurveTo(-w * 0.5, h * 0.85, -w * 0.25, h * 0.8, 0, h * 0.85);
-  mainShape.bezierCurveTo(w * 0.25, h * 0.8, w * 0.5, h * 0.85, w * 0.7, h * 0.8);
-  mainShape.bezierCurveTo(w * 0.75, h * 0.5, w * 0.8, h * 0.2, w * 0.85, -h * 0.1);
-  mainShape.bezierCurveTo(w * 0.9, -h * 0.4, w * 0.95, -h * 0.7, w * 0.85, -h * 0.9);
-  mainShape.bezierCurveTo(w * 0.6, -h * 0.95, w * 0.25, -h * 0.9, 0, -h * 0.95);
-  mainShape.bezierCurveTo(-w * 0.25, -h * 0.9, -w * 0.6, -h * 0.95, -w * 0.85, -h * 0.9);
+  // Corps principal du t-shirt avec forme plus réaliste
+  const mainShape = new THREE.Shape();
+  mainShape.moveTo(-w * 0.8, -h * 0.85);
+  mainShape.bezierCurveTo(-w * 0.9, -h * 0.65, -w * 0.85, -h * 0.35, -w * 0.8, -h * 0.05);
+  mainShape.bezierCurveTo(-w * 0.75, h * 0.25, -w * 0.7, h * 0.55, -w * 0.65, h * 0.75);
+  mainShape.bezierCurveTo(-w * 0.45, h * 0.8, -w * 0.2, h * 0.75, 0, h * 0.8);
+  mainShape.bezierCurveTo(w * 0.2, h * 0.75, w * 0.45, h * 0.8, w * 0.65, h * 0.75);
+  mainShape.bezierCurveTo(w * 0.7, h * 0.55, w * 0.75, h * 0.25, w * 0.8, -h * 0.05);
+  mainShape.bezierCurveTo(w * 0.85, -h * 0.35, w * 0.9, -h * 0.65, w * 0.8, -h * 0.85);
+  mainShape.bezierCurveTo(w * 0.55, -h * 0.9, w * 0.2, -h * 0.85, 0, -h * 0.9);
+  mainShape.bezierCurveTo(-w * 0.2, -h * 0.85, -w * 0.55, -h * 0.9, -w * 0.8, -h * 0.85);
   
-  // Extrusion avec des paramètres pour une forme plus douce
   const extrudeSettings = {
-    depth: depth * 0.2,
+    depth: depth * 0.25,
     bevelEnabled: true,
-    bevelSegments: 4,
-    steps: 2,
-    bevelSize: depth * 0.03,
-    bevelThickness: depth * 0.02,
-    curveSegments: 24
+    bevelSegments: 6,
+    steps: 4,
+    bevelSize: depth * 0.04,
+    bevelThickness: depth * 0.03,
+    curveSegments: 32
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(mainShape, extrudeSettings);
-  const mainBodyMaterial = new THREE.MeshStandardMaterial({ 
+  const mainBody = new THREE.Mesh(mainBodyGeometry, new THREE.MeshStandardMaterial({ 
     color: 0xffffff,
+    roughness: 0.7,
+    metalness: 0.0,
     side: THREE.DoubleSide 
-  });
-  const mainBody = new THREE.Mesh(mainBodyGeometry, mainBodyMaterial);
+  }));
   mainBody.rotation.x = -Math.PI / 2;
   group.add(mainBody);
+
+  // Ajouter des plis réalistes sur les côtés
+  createFoldLines(group, w, h, depth, 'tshirt');
+  
+  // Ajouter de la texture de surface pour plus de réalisme
+  addSurfaceDetail(group, w, h, depth, 0.15);
 
   return group;
 };
 
-// Crée un jean plié avec forme organique
+// Crée un jean plié avec forme organique et détails réalistes
 const createFoldedJeans = (width: number, height: number, depth: number, cropSettings?: CropSettings) => {
   const group = new THREE.Group();
-  
-  // Forme organique pour jean adaptée à la découpe
-  const jeanShape = new THREE.Shape();
   
   let w = width * 0.4;
   let h = height * 0.8;
@@ -130,41 +130,46 @@ const createFoldedJeans = (width: number, height: number, depth: number, cropSet
   if (cropSettings) {
     const aspectRatio = cropSettings.targetAspectRatio;
     if (aspectRatio > 1) {
-      // Forme horizontale pour jean plié (plus large que haut)
       w = width * 0.6;
       h = height * 0.5;
     }
   }
   
-  // Forme naturelle avec des irrégularités subtiles
-  jeanShape.moveTo(-w * 0.95, -h * 0.9);
-  jeanShape.bezierCurveTo(-w * 1.02, -h * 0.7, -w * 0.98, -h * 0.4, -w * 0.92, -h * 0.1);
-  jeanShape.bezierCurveTo(-w * 0.88, h * 0.1, -w * 0.85, h * 0.4, -w * 0.9, h * 0.7);
-  jeanShape.bezierCurveTo(-w * 0.7, h * 0.85, -w * 0.4, h * 0.9, 0, h * 0.88);
-  jeanShape.bezierCurveTo(w * 0.4, h * 0.9, w * 0.7, h * 0.85, w * 0.9, h * 0.7);
-  jeanShape.bezierCurveTo(w * 0.85, h * 0.4, w * 0.88, h * 0.1, w * 0.92, -h * 0.1);
-  jeanShape.bezierCurveTo(w * 0.98, -h * 0.4, w * 1.02, -h * 0.7, w * 0.95, -h * 0.9);
-  jeanShape.bezierCurveTo(w * 0.75, -h * 0.95, w * 0.35, -h * 0.92, 0, -h * 0.94);
-  jeanShape.bezierCurveTo(-w * 0.35, -h * 0.92, -w * 0.75, -h * 0.95, -w * 0.95, -h * 0.9);
+  // Corps principal du jean avec épaisseur réaliste
+  const jeanShape = new THREE.Shape();
+  jeanShape.moveTo(-w * 0.9, -h * 0.85);
+  jeanShape.bezierCurveTo(-w * 0.95, -h * 0.65, -w * 0.9, -h * 0.35, -w * 0.85, -h * 0.05);
+  jeanShape.bezierCurveTo(-w * 0.8, h * 0.15, -w * 0.75, h * 0.45, -w * 0.8, h * 0.65);
+  jeanShape.bezierCurveTo(-w * 0.6, h * 0.8, -w * 0.3, h * 0.85, 0, h * 0.83);
+  jeanShape.bezierCurveTo(w * 0.3, h * 0.85, w * 0.6, h * 0.8, w * 0.8, h * 0.65);
+  jeanShape.bezierCurveTo(w * 0.75, h * 0.45, w * 0.8, h * 0.15, w * 0.85, -h * 0.05);
+  jeanShape.bezierCurveTo(w * 0.9, -h * 0.35, w * 0.95, -h * 0.65, w * 0.9, -h * 0.85);
+  jeanShape.bezierCurveTo(w * 0.7, -h * 0.9, w * 0.3, -h * 0.87, 0, -h * 0.89);
+  jeanShape.bezierCurveTo(-w * 0.3, -h * 0.87, -w * 0.7, -h * 0.9, -w * 0.9, -h * 0.85);
   
   const jeanExtrudeSettings = {
-    depth: depth * 0.3,
+    depth: depth * 0.4,
     bevelEnabled: true,
-    bevelSegments: 5,
-    steps: 3,
-    bevelSize: depth * 0.04,
-    bevelThickness: depth * 0.025,
-    curveSegments: 20
+    bevelSegments: 8,
+    steps: 5,
+    bevelSize: depth * 0.05,
+    bevelThickness: depth * 0.04,
+    curveSegments: 28
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(jeanShape, jeanExtrudeSettings);
-  const mainBodyMaterial = new THREE.MeshStandardMaterial({ 
+  const mainBody = new THREE.Mesh(mainBodyGeometry, new THREE.MeshStandardMaterial({ 
     color: 0xffffff,
+    roughness: 0.9,
+    metalness: 0.0,
     side: THREE.DoubleSide 
-  });
-  const mainBody = new THREE.Mesh(mainBodyGeometry, mainBodyMaterial);
+  }));
   mainBody.rotation.x = -Math.PI / 2;
   group.add(mainBody);
+
+  // Ajouter des coutures et plis de jean
+  createFoldLines(group, w, h, depth, 'jean');
+  addSurfaceDetail(group, w, h, depth, 0.25);
 
   return group;
 };
@@ -282,4 +287,66 @@ const adjustUVMapping = (mesh: THREE.Mesh, type: string) => {
   
   uvAttribute.needsUpdate = true;
   mesh.geometry.computeBoundingBox();
+};
+
+// Crée des lignes de plis réalistes pour ajouter du volume
+const createFoldLines = (group: THREE.Group, w: number, h: number, depth: number, type: string) => {
+  const foldMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.8,
+    metalness: 0.0,
+    opacity: 0.7,
+    transparent: true
+  });
+
+  // Pli central horizontal
+  const foldGeometry = new THREE.CylinderGeometry(depth * 0.01, depth * 0.01, w * 1.2, 8);
+  const centralFold = new THREE.Mesh(foldGeometry, foldMaterial);
+  centralFold.rotation.z = Math.PI / 2;
+  centralFold.position.set(0, depth * 0.1, h * 0.1);
+  group.add(centralFold);
+
+  // Plis latéraux selon le type de vêtement
+  if (type === 'jean') {
+    // Couture centrale pour le jean
+    const seamGeometry = new THREE.CylinderGeometry(depth * 0.005, depth * 0.005, h * 1.2, 6);
+    const seam = new THREE.Mesh(seamGeometry, foldMaterial);
+    seam.position.set(0, depth * 0.12, 0);
+    group.add(seam);
+  }
+
+  // Plis de côté
+  const sideFoldLeft = new THREE.Mesh(foldGeometry.clone(), foldMaterial);
+  sideFoldLeft.rotation.z = Math.PI / 2;
+  sideFoldLeft.position.set(-w * 0.3, depth * 0.08, h * 0.05);
+  group.add(sideFoldLeft);
+
+  const sideFoldRight = new THREE.Mesh(foldGeometry.clone(), foldMaterial);
+  sideFoldRight.rotation.z = Math.PI / 2;
+  sideFoldRight.position.set(w * 0.3, depth * 0.08, h * 0.05);
+  group.add(sideFoldRight);
+};
+
+// Ajoute des détails de surface pour plus de réalisme
+const addSurfaceDetail = (group: THREE.Group, w: number, h: number, depth: number, intensity: number) => {
+  const detailMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.9,
+    metalness: 0.0,
+    opacity: 0.3,
+    transparent: true
+  });
+
+  // Petites irrégularités de surface
+  for (let i = 0; i < 8; i++) {
+    const x = (Math.random() - 0.5) * w * 0.8;
+    const z = (Math.random() - 0.5) * h * 0.8;
+    const size = depth * 0.02 * intensity;
+    
+    const detailGeometry = new THREE.SphereGeometry(size, 6, 4);
+    const detail = new THREE.Mesh(detailGeometry, detailMaterial);
+    detail.position.set(x, depth * 0.05, z);
+    detail.scale.y = 0.3; // Aplatir pour simuler des plis
+    group.add(detail);
+  }
 };

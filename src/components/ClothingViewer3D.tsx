@@ -171,9 +171,11 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
           antialias: false
         }}
       >
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
-        <directionalLight position={[-10, -10, -5]} intensity={0.3} />
+        <ambientLight intensity={0.3} />
+        <directionalLight position={[10, 10, 5]} intensity={0.8} castShadow />
+        <directionalLight position={[-5, 5, -3]} intensity={0.4} />
+        <pointLight position={[0, 5, 0]} intensity={0.3} />
+        <hemisphereLight args={[0xffffff, 0x404040]} intensity={0.2} />
         
         <ClothingMesh 
           imageUrl={imageUrl} 
