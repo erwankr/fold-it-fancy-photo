@@ -10,92 +10,111 @@ import { exportToGLB } from '../services/glbExporter';
 interface ClothingViewer3DProps {
   imageUrl: string;
   clothingType: 'jean' | 'tshirt' | 'chemise';
+  dimensions?: {
+    width: number;   // en cm
+    height: number;  // en cm
+    depth: number;   // en cm
+  };
   onDownload?: () => void;
 }
 
 // Géométries 3D pour chaque type de vêtement avec bords arrondis
-const createClothingGeometry = (type: string) => {
+const createClothingGeometry = (type: string, dimensions?: { width: number; height: number; depth: number }) => {
+  // Convertir les dimensions en centimètres vers les unités Three.js (1 cm = 0.05 unités)
+  const scale = 0.05;
+  const width = dimensions ? dimensions.width * scale : 2;
+  const height = dimensions ? dimensions.height * scale : 3;
+  const depth = dimensions ? dimensions.depth * scale : 0.15;
+  
   const extrudeSettings = {
-    depth: 0.15,
+    depth,
     bevelEnabled: true,
-    bevelThickness: 0.08,
-    bevelSize: 0.12,
+    bevelThickness: depth * 0.3,
+    bevelSize: Math.min(width, height) * 0.05,
     bevelSegments: 12,
     curveSegments: 16
   };
 
   switch (type) {
     case 'jean':
-      // Forme de pantalon/jean avec courbes douces
+      // Forme de pantalon/jean avec courbes douces, adaptée aux dimensions
       const jeanShape = new THREE.Shape();
-      jeanShape.moveTo(-0.9, 1.8);
-      jeanShape.bezierCurveTo(-1.1, 1.6, -1.2, 1.2, -1.1, 0.8);
-      jeanShape.bezierCurveTo(-0.9, 0.2, -0.8, -0.5, -0.7, -1.2);
-      jeanShape.bezierCurveTo(-0.65, -1.6, -0.6, -1.9, -0.5, -2);
-      jeanShape.bezierCurveTo(-0.2, -2.1, 0.2, -2.1, 0.5, -2);
-      jeanShape.bezierCurveTo(0.6, -1.9, 0.65, -1.6, 0.7, -1.2);
-      jeanShape.bezierCurveTo(0.8, -0.5, 0.9, 0.2, 1.1, 0.8);
-      jeanShape.bezierCurveTo(1.2, 1.2, 1.1, 1.6, 0.9, 1.8);
-      jeanShape.bezierCurveTo(0.5, 1.9, -0.5, 1.9, -0.9, 1.8);
+      const w = width / 2;
+      const h = height / 2;
+      jeanShape.moveTo(-w * 0.45, h * 0.9);
+      jeanShape.bezierCurveTo(-w * 0.55, h * 0.8, -w * 0.6, h * 0.6, -w * 0.55, h * 0.4);
+      jeanShape.bezierCurveTo(-w * 0.45, h * 0.1, -w * 0.4, -h * 0.25, -w * 0.35, -h * 0.6);
+      jeanShape.bezierCurveTo(-w * 0.325, -h * 0.8, -w * 0.3, -h * 0.95, -w * 0.25, -h);
+      jeanShape.bezierCurveTo(-w * 0.1, -h * 1.05, w * 0.1, -h * 1.05, w * 0.25, -h);
+      jeanShape.bezierCurveTo(w * 0.3, -h * 0.95, w * 0.325, -h * 0.8, w * 0.35, -h * 0.6);
+      jeanShape.bezierCurveTo(w * 0.4, -h * 0.25, w * 0.45, h * 0.1, w * 0.55, h * 0.4);
+      jeanShape.bezierCurveTo(w * 0.6, h * 0.6, w * 0.55, h * 0.8, w * 0.45, h * 0.9);
+      jeanShape.bezierCurveTo(w * 0.25, h * 0.95, -w * 0.25, h * 0.95, -w * 0.45, h * 0.9);
       
       return new THREE.ExtrudeGeometry(jeanShape, extrudeSettings);
 
     case 'tshirt':
-      // Forme de t-shirt avec manches arrondies
+      // Forme de t-shirt avec manches arrondies, adaptée aux dimensions
       const tshirtShape = new THREE.Shape();
+      const wt = width / 2;
+      const ht = height / 2;
       // Corps principal
-      tshirtShape.moveTo(-1.1, 1.6);
-      tshirtShape.bezierCurveTo(-1.1, 1.7, -1.2, 1.8, -1.4, 1.7);
+      tshirtShape.moveTo(-wt * 0.55, ht * 0.8);
+      tshirtShape.bezierCurveTo(-wt * 0.55, ht * 0.85, -wt * 0.6, ht * 0.9, -wt * 0.7, ht * 0.85);
       // Manche gauche
-      tshirtShape.bezierCurveTo(-1.7, 1.6, -1.8, 1.4, -1.7, 1.2);
-      tshirtShape.bezierCurveTo(-1.6, 1.1, -1.3, 1.1, -1.1, 1.2);
+      tshirtShape.bezierCurveTo(-wt * 0.85, ht * 0.8, -wt * 0.9, ht * 0.7, -wt * 0.85, ht * 0.6);
+      tshirtShape.bezierCurveTo(-wt * 0.8, ht * 0.55, -wt * 0.65, ht * 0.55, -wt * 0.55, ht * 0.6);
       // Descendre le long du corps
-      tshirtShape.bezierCurveTo(-1.1, 0.5, -1.1, -0.5, -1.1, -1.3);
-      tshirtShape.bezierCurveTo(-1.1, -1.6, -0.8, -1.7, -0.5, -1.6);
+      tshirtShape.bezierCurveTo(-wt * 0.55, ht * 0.25, -wt * 0.55, -ht * 0.25, -wt * 0.55, -ht * 0.65);
+      tshirtShape.bezierCurveTo(-wt * 0.55, -ht * 0.8, -wt * 0.4, -ht * 0.85, -wt * 0.25, -ht * 0.8);
       // Bas du t-shirt
-      tshirtShape.bezierCurveTo(0, -1.6, 0.5, -1.6, 1.1, -1.3);
-      tshirtShape.bezierCurveTo(1.1, -0.5, 1.1, 0.5, 1.1, 1.2);
+      tshirtShape.bezierCurveTo(0, -ht * 0.8, wt * 0.25, -ht * 0.8, wt * 0.55, -ht * 0.65);
+      tshirtShape.bezierCurveTo(wt * 0.55, -ht * 0.25, wt * 0.55, ht * 0.25, wt * 0.55, ht * 0.6);
       // Manche droite
-      tshirtShape.bezierCurveTo(1.3, 1.1, 1.6, 1.1, 1.7, 1.2);
-      tshirtShape.bezierCurveTo(1.8, 1.4, 1.7, 1.6, 1.4, 1.7);
-      tshirtShape.bezierCurveTo(1.2, 1.8, 1.1, 1.7, 1.1, 1.6);
+      tshirtShape.bezierCurveTo(wt * 0.65, ht * 0.55, wt * 0.8, ht * 0.55, wt * 0.85, ht * 0.6);
+      tshirtShape.bezierCurveTo(wt * 0.9, ht * 0.7, wt * 0.85, ht * 0.8, wt * 0.7, ht * 0.85);
+      tshirtShape.bezierCurveTo(wt * 0.6, ht * 0.9, wt * 0.55, ht * 0.85, wt * 0.55, ht * 0.8);
       // Retour au début
-      tshirtShape.bezierCurveTo(0.5, 1.7, -0.5, 1.7, -1.1, 1.6);
+      tshirtShape.bezierCurveTo(wt * 0.25, ht * 0.85, -wt * 0.25, ht * 0.85, -wt * 0.55, ht * 0.8);
       
       return new THREE.ExtrudeGeometry(tshirtShape, extrudeSettings);
 
     case 'chemise':
-      // Forme de chemise avec col arrondi
+      // Forme de chemise avec col arrondi, adaptée aux dimensions
       const chemiseShape = new THREE.Shape();
+      const wc = width / 2;
+      const hc = height / 2;
       // Col de chemise arrondi
-      chemiseShape.moveTo(-1.0, 1.8);
-      chemiseShape.bezierCurveTo(-1.2, 1.9, -1.4, 1.8, -1.5, 1.6);
+      chemiseShape.moveTo(-wc * 0.5, hc * 0.9);
+      chemiseShape.bezierCurveTo(-wc * 0.6, hc * 0.95, -wc * 0.7, hc * 0.9, -wc * 0.75, hc * 0.8);
       // Manche gauche
-      chemiseShape.bezierCurveTo(-1.6, 1.5, -1.6, 1.3, -1.4, 1.3);
-      chemiseShape.bezierCurveTo(-1.2, 1.3, -1.0, 1.3, -1.0, 1.0);
+      chemiseShape.bezierCurveTo(-wc * 0.8, hc * 0.75, -wc * 0.8, hc * 0.65, -wc * 0.7, hc * 0.65);
+      chemiseShape.bezierCurveTo(-wc * 0.6, hc * 0.65, -wc * 0.5, hc * 0.65, -wc * 0.5, hc * 0.5);
       // Corps de la chemise
-      chemiseShape.bezierCurveTo(-1.0, 0.2, -1.0, -0.8, -1.0, -1.6);
-      chemiseShape.bezierCurveTo(-1.0, -1.8, -0.7, -1.9, -0.4, -1.8);
+      chemiseShape.bezierCurveTo(-wc * 0.5, hc * 0.1, -wc * 0.5, -hc * 0.4, -wc * 0.5, -hc * 0.8);
+      chemiseShape.bezierCurveTo(-wc * 0.5, -hc * 0.9, -wc * 0.35, -hc * 0.95, -wc * 0.2, -hc * 0.9);
       // Bas arrondi
-      chemiseShape.bezierCurveTo(0, -1.8, 0.4, -1.8, 1.0, -1.6);
-      chemiseShape.bezierCurveTo(1.0, -0.8, 1.0, 0.2, 1.0, 1.0);
+      chemiseShape.bezierCurveTo(0, -hc * 0.9, wc * 0.2, -hc * 0.9, wc * 0.5, -hc * 0.8);
+      chemiseShape.bezierCurveTo(wc * 0.5, -hc * 0.4, wc * 0.5, hc * 0.1, wc * 0.5, hc * 0.5);
       // Manche droite
-      chemiseShape.bezierCurveTo(1.0, 1.3, 1.2, 1.3, 1.4, 1.3);
-      chemiseShape.bezierCurveTo(1.6, 1.3, 1.6, 1.5, 1.5, 1.6);
-      chemiseShape.bezierCurveTo(1.4, 1.8, 1.2, 1.9, 1.0, 1.8);
+      chemiseShape.bezierCurveTo(wc * 0.5, hc * 0.65, wc * 0.6, hc * 0.65, wc * 0.7, hc * 0.65);
+      chemiseShape.bezierCurveTo(wc * 0.8, hc * 0.65, wc * 0.8, hc * 0.75, wc * 0.75, hc * 0.8);
+      chemiseShape.bezierCurveTo(wc * 0.7, hc * 0.9, wc * 0.6, hc * 0.95, wc * 0.5, hc * 0.9);
       // Retour au col
-      chemiseShape.bezierCurveTo(0.5, 1.9, -0.5, 1.9, -1.0, 1.8);
+      chemiseShape.bezierCurveTo(wc * 0.25, hc * 0.95, -wc * 0.25, hc * 0.95, -wc * 0.5, hc * 0.9);
       
       return new THREE.ExtrudeGeometry(chemiseShape, extrudeSettings);
 
     default:
-      // Forme par défaut avec bords arrondis
+      // Forme par défaut avec bords arrondis, adaptée aux dimensions
       const defaultShape = new THREE.Shape();
-      defaultShape.moveTo(-1.5, 1.5);
-      defaultShape.bezierCurveTo(-1.5, 2, -1, 2, 1, 2);
-      defaultShape.bezierCurveTo(1.5, 2, 1.5, 1.5, 1.5, -1.5);
-      defaultShape.bezierCurveTo(1.5, -2, 1, -2, -1, -2);
-      defaultShape.bezierCurveTo(-1.5, -2, -1.5, -1.5, -1.5, 1.5);
+      const wd = width / 2;
+      const hd = height / 2;
+      defaultShape.moveTo(-wd * 0.75, hd * 0.75);
+      defaultShape.bezierCurveTo(-wd * 0.75, hd, -wd * 0.5, hd, wd * 0.5, hd);
+      defaultShape.bezierCurveTo(wd * 0.75, hd, wd * 0.75, hd * 0.75, wd * 0.75, -hd * 0.75);
+      defaultShape.bezierCurveTo(wd * 0.75, -hd, wd * 0.5, -hd, -wd * 0.5, -hd);
+      defaultShape.bezierCurveTo(-wd * 0.75, -hd, -wd * 0.75, -hd * 0.75, -wd * 0.75, hd * 0.75);
       return new THREE.ExtrudeGeometry(defaultShape, extrudeSettings);
   }
 };
@@ -103,10 +122,12 @@ const createClothingGeometry = (type: string) => {
 const ClothingMesh: React.FC<{ 
   imageUrl: string; 
   clothingType: string; 
+  dimensions?: { width: number; height: number; depth: number };
   onMeshReady?: (mesh: THREE.Mesh) => void 
 }> = ({ 
   imageUrl, 
   clothingType,
+  dimensions,
   onMeshReady 
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -128,14 +149,14 @@ const ClothingMesh: React.FC<{
       try {
         setIsProcessing(true);
         console.log('Extracting shape from image...');
-        const contourPoints = await extractShapeContours(imageUrl);
-        const newGeometry = createGeometryFromContours(contourPoints);
+        const contourPoints = await extractShapeContours(imageUrl, dimensions);
+        const newGeometry = createGeometryFromContours(contourPoints, dimensions);
         setGeometry(newGeometry);
         console.log('Shape extraction completed');
       } catch (error) {
         console.error('Error extracting shape:', error);
         // Fallback to default shape for clothing type
-        const fallbackGeometry = createClothingGeometry(clothingType) as THREE.BufferGeometry;
+        const fallbackGeometry = createClothingGeometry(clothingType, dimensions) as THREE.BufferGeometry;
         setGeometry(fallbackGeometry);
       } finally {
         setIsProcessing(false);
@@ -143,7 +164,7 @@ const ClothingMesh: React.FC<{
     };
 
     extractShape();
-  }, [imageUrl, clothingType]);
+  }, [imageUrl, clothingType, dimensions]);
 
   // Notify parent when mesh is ready
   useEffect(() => {
@@ -183,6 +204,7 @@ const ClothingMesh: React.FC<{
 const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({ 
   imageUrl, 
   clothingType, 
+  dimensions,
   onDownload 
 }) => {
   const [autoRotate, setAutoRotate] = useState(true);
@@ -220,6 +242,7 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
         <ClothingMesh 
           imageUrl={imageUrl} 
           clothingType={clothingType} 
+          dimensions={dimensions}
           onMeshReady={setCurrentMesh}
         />
         

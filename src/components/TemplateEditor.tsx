@@ -2,6 +2,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 
@@ -13,6 +15,11 @@ interface CropSettings {
   targetAspectRatio: number;  // Ratio cible (largeur/hauteur)
   maxFinalWidth: number;   // Largeur maximale souhaitée
   maxFinalHeight: number;  // Hauteur maximale souhaitée
+  dimensions3D: {          // Dimensions 3D réelles en cm
+    width: number;         // Largeur en cm
+    height: number;        // Hauteur en cm
+    depth: number;         // Profondeur en cm
+  };
 }
 
 interface TemplateEditorProps {
@@ -27,6 +34,7 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
   const [currentRect, setCurrentRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({ width: 40, height: 60, depth: 2 }); // Dimensions par défaut en cm
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -177,7 +185,8 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
       heightPercent,
       targetAspectRatio: selectedAspectRatio,
       maxFinalWidth: Math.round(300 * scaleFactor),
-      maxFinalHeight: Math.round(400 * scaleFactor)
+      maxFinalHeight: Math.round(400 * scaleFactor),
+      dimensions3D: dimensions
     };
 
     console.log("Sauvegarde du gabarit avec aspect ratio fixe:", {
@@ -217,6 +226,45 @@ export const TemplateEditor = ({ imageFile, clothingType, onSaveTemplate, onCanc
           <p className="text-sm text-muted-foreground">
             Cliquez et glissez sur l'image pour définir la zone qui sera recadrée pour ce type de vêtement.
           </p>
+          
+          {/* Champs pour les dimensions 3D */}
+          <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div>
+              <Label htmlFor="width">Largeur (cm)</Label>
+              <Input
+                id="width"
+                type="number"
+                value={dimensions.width}
+                onChange={(e) => setDimensions(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
+                min="1"
+                max="200"
+              />
+            </div>
+            <div>
+              <Label htmlFor="height">Hauteur (cm)</Label>
+              <Input
+                id="height"
+                type="number"
+                value={dimensions.height}
+                onChange={(e) => setDimensions(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
+                min="1"
+                max="300"
+              />
+            </div>
+            <div>
+              <Label htmlFor="depth">Profondeur (cm)</Label>
+              <Input
+                id="depth"
+                type="number"
+                value={dimensions.depth}
+                onChange={(e) => setDimensions(prev => ({ ...prev, depth: parseFloat(e.target.value) || 0 }))}
+                min="0.1"
+                max="10"
+                step="0.1"
+              />
+            </div>
+          </div>
+          
           <div className="border rounded-lg overflow-hidden bg-gray-50 flex justify-center items-center">
             <canvas
               ref={canvasRef}

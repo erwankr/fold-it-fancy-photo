@@ -123,7 +123,10 @@ export const loadImage = (file: Blob): Promise<HTMLImageElement> => {
 };
 
 // Extract shape contours from a segmented image
-export const extractShapeContours = async (imageUrl: string): Promise<THREE.Vector2[]> => {
+export const extractShapeContours = async (
+  imageUrl: string, 
+  dimensions?: { width: number; height: number; depth: number }
+): Promise<THREE.Vector2[]> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -178,9 +181,12 @@ export const extractShapeContours = async (imageUrl: string): Promise<THREE.Vect
               }
               
               if (isEdge) {
-                // Convert to normalized coordinates (-1 to 1)
-                const normalizedX = (x / canvas.width) * 4 - 2;
-                const normalizedY = ((canvas.height - y) / canvas.height) * 4 - 2;
+                // Convert to normalized coordinates, adaptées aux dimensions
+                const scale = 0.05;
+                const scaleWidth = dimensions ? (dimensions.width * scale) / 2 : 2;
+                const scaleHeight = dimensions ? (dimensions.height * scale) / 2 : 3;
+                const normalizedX = (x / canvas.width) * scaleWidth * 2 - scaleWidth;
+                const normalizedY = ((canvas.height - y) / canvas.height) * scaleHeight * 2 - scaleHeight;
                 contourPoints.push(new THREE.Vector2(normalizedX, normalizedY));
               }
             }
@@ -200,24 +206,35 @@ export const extractShapeContours = async (imageUrl: string): Promise<THREE.Vect
 };
 
 // Create 3D geometry from contour points with smooth, rounded edges
-export const createGeometryFromContours = (contourPoints: THREE.Vector2[]): THREE.ExtrudeGeometry => {
+export const createGeometryFromContours = (
+  contourPoints: THREE.Vector2[], 
+  dimensions?: { width: number; height: number; depth: number }
+): THREE.ExtrudeGeometry => {
+  // Convertir les dimensions en centimètres vers les unités Three.js (1 cm = 0.05 unités)
+  const scale = 0.05;
+  const depth = dimensions ? dimensions.depth * scale : 0.15;
+  const width = dimensions ? dimensions.width * scale : 2;
+  const height = dimensions ? dimensions.height * scale : 3;
+  
   const extrudeSettings = {
-    depth: 0.15,
+    depth,
     bevelEnabled: true,
-    bevelThickness: 0.08,
-    bevelSize: 0.12,
+    bevelThickness: depth * 0.3,
+    bevelSize: Math.min(width, height) * 0.05,
     bevelSegments: 12,
     curveSegments: 16
   };
 
   if (contourPoints.length < 3) {
-    // Fallback to smooth rounded rectangle if no contours found
+    // Fallback to smooth rounded rectangle if no contours found, adaptée aux dimensions
     const shape = new THREE.Shape();
-    shape.moveTo(-1.2, 1.2);
-    shape.bezierCurveTo(-1.2, 1.5, -1, 1.5, 1, 1.5);
-    shape.bezierCurveTo(1.2, 1.5, 1.2, 1.2, 1.2, -1.2);
-    shape.bezierCurveTo(1.2, -1.5, 1, -1.5, -1, -1.5);
-    shape.bezierCurveTo(-1.2, -1.5, -1.2, -1.2, -1.2, 1.2);
+    const w = width / 2;
+    const h = height / 2;
+    shape.moveTo(-w * 0.6, h * 0.6);
+    shape.bezierCurveTo(-w * 0.6, h * 0.75, -w * 0.5, h * 0.75, w * 0.5, h * 0.75);
+    shape.bezierCurveTo(w * 0.6, h * 0.75, w * 0.6, h * 0.6, w * 0.6, -h * 0.6);
+    shape.bezierCurveTo(w * 0.6, -h * 0.75, w * 0.5, -h * 0.75, -w * 0.5, -h * 0.75);
+    shape.bezierCurveTo(-w * 0.6, -h * 0.75, -w * 0.6, -h * 0.6, -w * 0.6, h * 0.6);
     
     return new THREE.ExtrudeGeometry(shape, extrudeSettings);
   }
