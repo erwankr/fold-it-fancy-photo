@@ -8,21 +8,30 @@ interface ContourPoint {
 // Analyse une image PNG pour extraire le contour basé sur la transparence
 export const extractShapeFromTransparency = async (imageUrl: string): Promise<THREE.Shape | null> => {
   try {
+    console.log('Starting transparency extraction for:', imageUrl);
+    
     // Charger l'image
     const img = await loadImageFromUrl(imageUrl);
     
     // Créer un canvas pour analyser les pixels
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return null;
+    }
     
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
     
+    console.log('Canvas created and image drawn:', canvas.width, 'x', canvas.height);
+    
     // Obtenir les données des pixels
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
+    
+    console.log('Image data extracted, analyzing transparency...');
     
     // Créer une carte de transparence
     const alphaMap = createAlphaMap(data, canvas.width, canvas.height);
@@ -30,11 +39,17 @@ export const extractShapeFromTransparency = async (imageUrl: string): Promise<TH
     // Détecter les contours
     const contour = detectContour(alphaMap, canvas.width, canvas.height);
     
-    if (contour.length < 3) return null;
+    console.log('Contour detected with', contour.length, 'points');
+    
+    if (contour.length < 3) {
+      console.warn('Not enough contour points, falling back to default shape');
+      return null;
+    }
     
     // Convertir en forme Three.js
     const shape = createShapeFromContour(contour, canvas.width, canvas.height);
     
+    console.log('Shape created successfully');
     return shape;
     
   } catch (error) {
@@ -48,8 +63,15 @@ const loadImageFromUrl = (url: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
+    
+    img.onload = () => {
+      console.log('Image loaded successfully:', img.width, 'x', img.height);
+      resolve(img);
+    };
+    img.onerror = (error) => {
+      console.error('Error loading image:', error);
+      reject(error);
+    };
     img.src = url;
   });
 };

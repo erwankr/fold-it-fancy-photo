@@ -64,37 +64,59 @@ const ClothingMesh: React.FC<{
     if (!texture) return;
 
     const createGeometry = async () => {
-      console.log('Creating folded clothing geometry for:', clothingType);
-      
-      // Créer la géométrie pliée personnalisée avec extraction de transparence
-      const foldedGeometry = await createFoldedClothingGeometry(clothingType, imageUrl, dimensions, cropSettings);
-      
-      // Appliquer la texture réaliste
-      applyFoldedTexture(foldedGeometry, texture, clothingType);
-      
-      // Ajuster l'échelle générale pour être visible
-      const scale = dimensions ? 
-        Math.min(dimensions.width, dimensions.height) * 0.03 : 
-        1.5;
-      foldedGeometry.scale.setScalar(scale);
-      
-      // Centrer le modèle
-      const box = new THREE.Box3().setFromObject(foldedGeometry);
-      const center = box.getCenter(new THREE.Vector3());
-      foldedGeometry.position.sub(center);
-      
-      setFoldedMesh(foldedGeometry);
-      
-      if (onMeshReady) {
-        onMeshReady(foldedGeometry);
+      try {
+        console.log('Creating folded clothing geometry for:', clothingType);
+        console.log('Image URL for transparency extraction:', imageUrl);
+        
+        // Créer la géométrie pliée personnalisée avec extraction de transparence
+        const foldedGeometry = await createFoldedClothingGeometry(clothingType, imageUrl, dimensions, cropSettings);
+        
+        if (!foldedGeometry) {
+          console.error('Failed to create geometry');
+          return;
+        }
+        
+        console.log('Geometry created, applying texture...');
+        
+        // Appliquer la texture réaliste
+        applyFoldedTexture(foldedGeometry, texture, clothingType);
+        
+        // Ajuster l'échelle générale pour être visible
+        const scale = dimensions ? 
+          Math.min(dimensions.width, dimensions.height) * 0.03 : 
+          1.5;
+        foldedGeometry.scale.setScalar(scale);
+        
+        // Centrer le modèle
+        const box = new THREE.Box3().setFromObject(foldedGeometry);
+        const center = box.getCenter(new THREE.Vector3());
+        foldedGeometry.position.sub(center);
+        
+        console.log('Setting folded mesh:', foldedGeometry);
+        setFoldedMesh(foldedGeometry);
+        
+        if (onMeshReady) {
+          onMeshReady(foldedGeometry);
+        }
+        
+        console.log('Folded clothing geometry created successfully');
+      } catch (error) {
+        console.error('Error creating geometry:', error);
+        
+        // Fallback : créer une géométrie simple en cas d'erreur
+        console.log('Creating fallback geometry...');
+        const fallbackGeometry = await createFoldedClothingGeometry(clothingType, undefined, dimensions, cropSettings);
+        if (fallbackGeometry) {
+          applyFoldedTexture(fallbackGeometry, texture, clothingType);
+          setFoldedMesh(fallbackGeometry);
+          if (onMeshReady) {
+            onMeshReady(fallbackGeometry);
+          }
+        }
       }
-      
-      console.log('Folded clothing geometry created successfully');
     };
     
-    createGeometry().catch(error => {
-      console.error('Error creating geometry:', error);
-    });
+    createGeometry();
     
   }, [texture, clothingType, imageUrl, dimensions, cropSettings, onMeshReady]);
 
@@ -102,9 +124,13 @@ const ClothingMesh: React.FC<{
   useEffect(() => {
     if (!groupRef.current || !foldedMesh) return;
     
+    console.log('Adding mesh to group:', foldedMesh);
+    
     // Vider le groupe et ajouter le nouveau mesh
     groupRef.current.clear();
     groupRef.current.add(foldedMesh);
+    
+    console.log('Mesh added to group. Group children count:', groupRef.current.children.length);
     
   }, [foldedMesh]);
 
