@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { extractShapeFromTransparency, createGeometryFromTransparency } from './shapeFromTransparency';
 
 // Interface pour les paramètres de découpe
 interface CropSettings {
@@ -12,8 +13,9 @@ interface CropSettings {
 }
 
 // Crée une géométrie de vêtement plié réaliste avec des courbes et des plis
-export const createFoldedClothingGeometry = (
+export const createFoldedClothingGeometry = async (
   type: 'jean' | 'tshirt' | 'chemise',
+  imageUrl?: string,
   dimensions?: { width: number; height: number; depth: number },
   cropSettings?: CropSettings
 ) => {
@@ -21,7 +23,37 @@ export const createFoldedClothingGeometry = (
   const height = dimensions ? dimensions.height * 0.01 : 1.5;
   const depth = dimensions ? dimensions.depth * 0.01 : 0.8;
 
-  // Calculer les dimensions basées sur la découpe si disponible
+  // Essayer d'abord d'extraire la forme depuis la transparence de l'image
+  if (imageUrl) {
+    try {
+      console.log('Tentative d\'extraction de forme depuis la transparence...');
+      const extractedShape = await extractShapeFromTransparency(imageUrl);
+      
+      if (extractedShape) {
+        console.log('Forme extraite avec succès depuis la transparence');
+        const group = new THREE.Group();
+        
+        // Créer la géométrie basée sur la forme extraite
+        const geometry = createGeometryFromTransparency(extractedShape, depth);
+        const material = new THREE.MeshStandardMaterial({ 
+          color: 0xffffff,
+          side: THREE.DoubleSide 
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.rotation.x = -Math.PI / 2;
+        
+        group.add(mesh);
+        return group;
+      }
+    } catch (error) {
+      console.warn('Impossible d\'extraire la forme depuis la transparence, utilisation de la forme par défaut:', error);
+    }
+  }
+
+  // Fallback vers les formes par défaut si l'extraction échoue
+  console.log('Utilisation de la forme par défaut pour:', type);
+
+  // Calculer les dimensions finales basées sur la découpe si disponible
   let finalWidth = width;
   let finalHeight = height;
   

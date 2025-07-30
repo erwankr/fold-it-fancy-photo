@@ -63,34 +63,40 @@ const ClothingMesh: React.FC<{
   useEffect(() => {
     if (!texture) return;
 
-    console.log('Creating folded clothing geometry for:', clothingType);
+    const createGeometry = async () => {
+      console.log('Creating folded clothing geometry for:', clothingType);
+      
+      // Créer la géométrie pliée personnalisée avec extraction de transparence
+      const foldedGeometry = await createFoldedClothingGeometry(clothingType, imageUrl, dimensions, cropSettings);
+      
+      // Appliquer la texture réaliste
+      applyFoldedTexture(foldedGeometry, texture, clothingType);
+      
+      // Ajuster l'échelle générale pour être visible
+      const scale = dimensions ? 
+        Math.min(dimensions.width, dimensions.height) * 0.03 : 
+        1.5;
+      foldedGeometry.scale.setScalar(scale);
+      
+      // Centrer le modèle
+      const box = new THREE.Box3().setFromObject(foldedGeometry);
+      const center = box.getCenter(new THREE.Vector3());
+      foldedGeometry.position.sub(center);
+      
+      setFoldedMesh(foldedGeometry);
+      
+      if (onMeshReady) {
+        onMeshReady(foldedGeometry);
+      }
+      
+      console.log('Folded clothing geometry created successfully');
+    };
     
-    // Créer la géométrie pliée personnalisée avec les paramètres de découpe
-    const foldedGeometry = createFoldedClothingGeometry(clothingType, dimensions, cropSettings);
+    createGeometry().catch(error => {
+      console.error('Error creating geometry:', error);
+    });
     
-    // Appliquer la texture réaliste
-    applyFoldedTexture(foldedGeometry, texture, clothingType);
-    
-    // Ajuster l'échelle générale pour être visible
-    const scale = dimensions ? 
-      Math.min(dimensions.width, dimensions.height) * 0.03 : 
-      1.5;
-    foldedGeometry.scale.setScalar(scale);
-    
-    // Centrer le modèle
-    const box = new THREE.Box3().setFromObject(foldedGeometry);
-    const center = box.getCenter(new THREE.Vector3());
-    foldedGeometry.position.sub(center);
-    
-    setFoldedMesh(foldedGeometry);
-    
-    if (onMeshReady) {
-      onMeshReady(foldedGeometry);
-    }
-    
-    console.log('Folded clothing geometry created successfully');
-    
-  }, [texture, clothingType, dimensions, cropSettings, onMeshReady]);
+  }, [texture, clothingType, imageUrl, dimensions, cropSettings, onMeshReady]);
 
   // Ajouter le mesh plié au groupe
   useEffect(() => {
