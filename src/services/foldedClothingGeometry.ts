@@ -13,7 +13,7 @@ interface CropSettings {
 }
 
 // Crée une géométrie de vêtement plié réaliste avec des courbes et des plis
-export const createFoldedClothingGeometry = async (
+export const createFoldedClothingGeometry = (
   type: 'jean' | 'tshirt' | 'chemise',
   imageUrl?: string,
   dimensions?: { width: number; height: number; depth: number },
@@ -23,35 +23,7 @@ export const createFoldedClothingGeometry = async (
   const height = dimensions ? dimensions.height * 0.01 : 1.5;
   const depth = dimensions ? dimensions.depth * 0.01 : 0.8;
 
-  // Essayer d'abord d'extraire la forme depuis la transparence de l'image
-  if (imageUrl) {
-    try {
-      console.log('Tentative d\'extraction de forme depuis la transparence...');
-      const extractedShape = await extractShapeFromTransparency(imageUrl);
-      
-      if (extractedShape) {
-        console.log('Forme extraite avec succès depuis la transparence');
-        const group = new THREE.Group();
-        
-        // Créer la géométrie basée sur la forme extraite
-        const geometry = createGeometryFromTransparency(extractedShape, depth);
-        const material = new THREE.MeshStandardMaterial({ 
-          color: 0xffffff,
-          side: THREE.DoubleSide 
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.rotation.x = -Math.PI / 2;
-        
-        group.add(mesh);
-        return group;
-      }
-    } catch (error) {
-      console.warn('Impossible d\'extraire la forme depuis la transparence, utilisation de la forme par défaut:', error);
-    }
-  }
-
-  // Fallback vers les formes par défaut si l'extraction échoue
-  console.log('Utilisation de la forme par défaut pour:', type);
+  console.log('Creating geometry for:', type, 'with dimensions:', { width, height, depth });
 
   // Calculer les dimensions finales basées sur la découpe si disponible
   let finalWidth = width;
@@ -69,18 +41,26 @@ export const createFoldedClothingGeometry = async (
       finalWidth = width * cropSettings.widthPercent;
       finalHeight = height * cropSettings.heightPercent * 1.2;
     }
+    console.log('Adjusted dimensions based on crop settings:', { finalWidth, finalHeight });
   }
 
+  let geometry;
   switch (type) {
     case 'tshirt':
-      return createFoldedTShirt(finalWidth, finalHeight, depth, cropSettings);
+      geometry = createFoldedTShirt(finalWidth, finalHeight, depth, cropSettings);
+      break;
     case 'jean':
-      return createFoldedJeans(finalWidth, finalHeight, depth, cropSettings);
+      geometry = createFoldedJeans(finalWidth, finalHeight, depth, cropSettings);
+      break;
     case 'chemise':
-      return createFoldedShirt(finalWidth, finalHeight, depth, cropSettings);
+      geometry = createFoldedShirt(finalWidth, finalHeight, depth, cropSettings);
+      break;
     default:
-      return createFoldedTShirt(finalWidth, finalHeight, depth, cropSettings);
+      geometry = createFoldedTShirt(finalWidth, finalHeight, depth, cropSettings);
   }
+
+  console.log('Geometry created successfully:', geometry);
+  return geometry;
 };
 
 // Crée un t-shirt plié avec une forme organique
