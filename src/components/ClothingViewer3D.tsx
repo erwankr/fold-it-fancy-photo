@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Button } from './ui/button';
 import { Download, RotateCcw, FileDown } from 'lucide-react';
@@ -123,17 +123,19 @@ const ClothingMesh: React.FC<{
   imageUrl: string; 
   clothingType: string; 
   dimensions?: { width: number; height: number; depth: number };
-  onMeshReady?: (mesh: THREE.Mesh) => void 
+  onMeshReady?: (mesh: THREE.Group) => void 
 }> = ({ 
   imageUrl, 
   clothingType,
   dimensions,
   onMeshReady 
 }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const [isProcessing, setIsProcessing] = useState(true);
   const texture = useLoader(THREE.TextureLoader, imageUrl);
+  
+  // Charger le modèle GLB de t-shirt
+  const { scene: tshirtScene } = useGLTF('/models/tshirt.glb');
   
   // Configuration de la texture pour un meilleur mapping sur les nouvelles dimensions
   texture.wrapS = THREE.ClampToEdgeWrapping;
@@ -155,43 +157,62 @@ const ClothingMesh: React.FC<{
   }
   texture.offset.set(0, 0);
 
-  // Extract shape from image and create geometry
+  // Appliquer la texture et ajuster les dimensions
   useEffect(() => {
-    const extractShape = async () => {
-      try {
-        setIsProcessing(true);
-        console.log('Extracting shape from image...');
-        const contourPoints = await extractShapeContours(imageUrl, dimensions);
-        const newGeometry = createGeometryFromContours(contourPoints, dimensions);
-        setGeometry(newGeometry);
-        console.log('Shape extraction completed');
-      } catch (error) {
-        console.error('Error extracting shape:', error);
-        // Fallback to default shape for clothing type
-        const fallbackGeometry = createClothingGeometry(clothingType, dimensions) as THREE.BufferGeometry;
-        setGeometry(fallbackGeometry);
-      } finally {
-        setIsProcessing(false);
+    if (tshirtScene && groupRef.current) {
+      setIsProcessing(true);
+      
+      // Cloner la scene pour éviter les conflits
+      const clonedScene = tshirtScene.clone();
+      
+      // Parcourir tous les meshes dans la scène clonée
+      clonedScene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          // Appliquer la texture à tous les matériaux
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat) => {
+                if (mat instanceof THREE.MeshStandardMaterial) {
+                  mat.map = texture;
+                  mat.needsUpdate = true;
+                }
+              });
+            } else if (child.material instanceof THREE.MeshStandardMaterial) {
+              child.material.map = texture;
+              child.material.needsUpdate = true;
+            }
+          }
+        }
+      });
+      
+      // Ajuster les dimensions si spécifiées
+      if (dimensions) {
+        const scale = 0.1; // 1 cm = 0.1 unités Three.js
+        const scaleFactorX = (dimensions.width * scale) / 2;
+        const scaleFactorY = (dimensions.height * scale) / 3;
+        const scaleFactorZ = (dimensions.depth * scale) / 0.3;
+        clonedScene.scale.set(scaleFactorX, scaleFactorY, scaleFactorZ);
       }
-    };
-
-    extractShape();
-  }, [imageUrl, clothingType, dimensions]);
-
-  // Notify parent when mesh is ready
-  useEffect(() => {
-    if (meshRef.current && onMeshReady && !isProcessing) {
-      onMeshReady(meshRef.current);
+      
+      // Vider le groupe et ajouter le modèle de t-shirt
+      groupRef.current.clear();
+      groupRef.current.add(clonedScene);
+      
+      if (onMeshReady) {
+        onMeshReady(groupRef.current);
+      }
+      
+      setIsProcessing(false);
     }
-  }, [onMeshReady, isProcessing]);
+  }, [tshirtScene, texture, dimensions, onMeshReady]);
 
   useFrame((state) => {
-    if (meshRef.current && !isProcessing) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+    if (groupRef.current && !isProcessing) {
+      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
     }
   });
 
-  if (isProcessing || !geometry) {
+  if (isProcessing) {
     return (
       <mesh>
         <boxGeometry args={[0.1, 0.1, 0.1]} />
@@ -200,17 +221,7 @@ const ClothingMesh: React.FC<{
     );
   }
 
-  return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <meshStandardMaterial 
-        map={texture} 
-        transparent={true}
-        side={THREE.DoubleSide}
-        roughness={0.7}
-        metalness={0.1}
-      />
-    </mesh>
-  );
+  return <group ref={groupRef} />;
 };
 
 const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({ 
@@ -220,7 +231,7 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
   onDownload 
 }) => {
   const [autoRotate, setAutoRotate] = useState(true);
-  const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | null>(null);
+  const [currentMesh, setCurrentMesh] = useState<THREE.Group | null>(null);
 
   const handleDownload3D = () => {
     // Pour l'instant, on déclenche le téléchargement de l'image

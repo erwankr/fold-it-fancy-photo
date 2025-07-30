@@ -2,15 +2,15 @@ import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 export const exportToGLB = async (
-  mesh: THREE.Mesh,
+  object3D: THREE.Object3D,
   filename: string = 'clothing_model.glb'
 ): Promise<void> => {
   try {
     const exporter = new GLTFExporter();
     
-    // Create a scene with the mesh
+    // Create a scene with the object3D
     const scene = new THREE.Scene();
-    scene.add(mesh.clone());
+    scene.add(object3D.clone());
     
     // Export options
     const options = {
