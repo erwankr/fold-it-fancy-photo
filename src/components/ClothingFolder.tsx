@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, Download, Trash2, Settings, Shirt, Zap, UserCheck } from "lucide-react";
+import { Upload, Download, Trash2, Settings, Shirt, Zap, UserCheck, Box, X } from "lucide-react";
 import { TemplateEditor } from "./TemplateEditor";
 import { processImageWithTemplate } from "./ImageProcessor";
+import ClothingViewer3D from "./ClothingViewer3D";
 import JSZip from "jszip";
 
 interface ProcessedImage {
@@ -81,6 +82,7 @@ export const ClothingFolder = () => {
     tshirt: CLOTHING_TEMPLATES.tshirt.defaultSettings,
     chemise: CLOTHING_TEMPLATES.chemise.defaultSettings
   });
+  const [selectedImageFor3D, setSelectedImageFor3D] = useState<ProcessedImage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const templateFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -342,6 +344,17 @@ export const ClothingFolder = () => {
                         <Download className="w-4 h-4 mr-1" />
                         Télécharger
                       </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedImageFor3D(image)}
+                        className="flex-1"
+                      >
+                        <Box className="h-4 w-4 mr-1" />
+                        Vue 3D
+                      </Button>
+                      
                       <Button 
                         size="sm" 
                         variant="outline"
@@ -367,6 +380,33 @@ export const ClothingFolder = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {selectedImageFor3D && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Visualisation 3D - {CLOTHING_TEMPLATES[selectedImageFor3D.type].name}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedImageFor3D(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <ClothingViewer3D
+                imageUrl={selectedImageFor3D.processedUrl}
+                clothingType={selectedImageFor3D.type}
+                onDownload={() => downloadImage(selectedImageFor3D)}
+              />
+              
+              <div className="mt-4 text-sm text-muted-foreground text-center">
+                Utilisez la souris pour faire tourner, zoomer et déplacer le modèle 3D
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
