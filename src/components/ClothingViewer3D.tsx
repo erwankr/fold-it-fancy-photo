@@ -82,9 +82,11 @@ const ClothingMesh: React.FC<{
       
       // Ajuster l'échelle générale pour être visible
       const scale = dimensions ? 
-        Math.min(dimensions.width, dimensions.height) * 0.03 : 
-        1.5;
+        Math.max(dimensions.width, dimensions.height) * 0.05 : 
+        2.0; // Échelle plus importante par défaut
       foldedGeometry.scale.setScalar(scale);
+      
+      console.log('Applied scale:', scale, 'to geometry with bounds:', foldedGeometry);
       
       // Centrer le modèle
       const box = new THREE.Box3().setFromObject(foldedGeometry);
@@ -164,18 +166,18 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
   return (
     <div className="w-full h-96 bg-background rounded-lg border relative">
       <Canvas 
-        camera={{ position: [0, 0, 5], fov: 45 }}
+        camera={{ position: [0, 2, 8], fov: 50 }} // Position caméra ajustée
         gl={{ 
           preserveDrawingBuffer: true,
           powerPreference: "high-performance",
-          antialias: false
+          antialias: true // Réactiver l'antialiasing
         }}
       >
-        <ambientLight intensity={0.3} />
-        <directionalLight position={[10, 10, 5]} intensity={0.8} castShadow />
-        <directionalLight position={[-5, 5, -3]} intensity={0.4} />
-        <pointLight position={[0, 5, 0]} intensity={0.3} />
-        <hemisphereLight args={[0xffffff, 0x404040]} intensity={0.2} />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={1.2} castShadow />
+        <directionalLight position={[-5, 5, -3]} intensity={0.8} />
+        <pointLight position={[0, 8, 0]} intensity={0.5} />
+        <hemisphereLight args={[0xffffff, 0x404040]} intensity={0.4} />
         
         <ClothingMesh 
           imageUrl={imageUrl} 

@@ -270,10 +270,12 @@ export const applyFoldedTexture = (
     map: texture,
     roughness: getClothingRoughness(type),
     metalness: 0.0,
-    normalScale: new THREE.Vector2(0.3, 0.3), // Effet de texture subtil
+    normalScale: new THREE.Vector2(0.3, 0.3),
     side: THREE.DoubleSide,
-    transparent: true,
-    alphaTest: 0.1 // Pour respecter la transparence de l'image découpée
+    transparent: false, // Désactiver la transparence d'abord
+    visible: true,
+    color: 0xffffff, // S'assurer que la couleur est blanche
+    opacity: 1.0
   });
 
   // Appliquer le matériau à tous les meshes
@@ -282,6 +284,9 @@ export const applyFoldedTexture = (
       child.material = material.clone();
       child.castShadow = true;
       child.receiveShadow = true;
+      child.visible = true; // S'assurer que l'objet est visible
+      
+      console.log('Applied material to mesh:', child, 'with material:', child.material);
       
       // Ajuster les UV mapping avec les paramètres de découpe
       adjustUVMappingWithCrop(child, type, cropSettings);
