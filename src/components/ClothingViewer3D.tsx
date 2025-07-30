@@ -103,9 +103,12 @@ const ClothingMesh: React.FC<{
   const texture = useLoader(THREE.TextureLoader, imageUrl);
   
   // Configuration de la texture
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.flipY = false;
+  // Assurer que la texture couvre toute la surface une seule fois
+  texture.repeat.set(1, 1);
+  texture.offset.set(0, 0);
 
   // Extract shape from image and create geometry
   useEffect(() => {
