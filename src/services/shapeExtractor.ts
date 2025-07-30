@@ -182,7 +182,7 @@ export const extractShapeContours = async (
               
               if (isEdge) {
                 // Convert to normalized coordinates, adaptées aux dimensions
-                const scale = 0.05;
+                const scale = 0.1;
                 const scaleWidth = dimensions ? (dimensions.width * scale) / 2 : 2;
                 const scaleHeight = dimensions ? (dimensions.height * scale) / 2 : 3;
                 const normalizedX = (x / canvas.width) * scaleWidth * 2 - scaleWidth;
@@ -210,11 +210,11 @@ export const createGeometryFromContours = (
   contourPoints: THREE.Vector2[], 
   dimensions?: { width: number; height: number; depth: number }
 ): THREE.ExtrudeGeometry => {
-  // Convertir les dimensions en centimètres vers les unités Three.js (1 cm = 0.05 unités)
-  const scale = 0.05;
-  const depth = dimensions ? dimensions.depth * scale : 0.15;
-  const width = dimensions ? dimensions.width * scale : 2;
-  const height = dimensions ? dimensions.height * scale : 3;
+  // Convertir les dimensions en centimètres vers les unités Three.js (1 cm = 0.1 unités pour plus de visibilité)
+  const scale = 0.1;
+  const depth = dimensions ? dimensions.depth * scale : 0.3;
+  const width = dimensions ? dimensions.width * scale : 4;
+  const height = dimensions ? dimensions.height * scale : 6;
   
   const extrudeSettings = {
     depth,

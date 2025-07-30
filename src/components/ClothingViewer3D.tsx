@@ -20,11 +20,11 @@ interface ClothingViewer3DProps {
 
 // Géométries 3D pour chaque type de vêtement avec bords arrondis
 const createClothingGeometry = (type: string, dimensions?: { width: number; height: number; depth: number }) => {
-  // Convertir les dimensions en centimètres vers les unités Three.js (1 cm = 0.05 unités)
-  const scale = 0.05;
-  const width = dimensions ? dimensions.width * scale : 2;
-  const height = dimensions ? dimensions.height * scale : 3;
-  const depth = dimensions ? dimensions.depth * scale : 0.15;
+  // Convertir les dimensions en centimètres vers les unités Three.js (1 cm = 0.1 unités pour plus de visibilité)
+  const scale = 0.1;
+  const width = dimensions ? dimensions.width * scale : 4;
+  const height = dimensions ? dimensions.height * scale : 6;
+  const depth = dimensions ? dimensions.depth * scale : 0.3;
   
   const extrudeSettings = {
     depth,
@@ -135,12 +135,24 @@ const ClothingMesh: React.FC<{
   const [isProcessing, setIsProcessing] = useState(true);
   const texture = useLoader(THREE.TextureLoader, imageUrl);
   
-  // Configuration de la texture
+  // Configuration de la texture pour un meilleur mapping sur les nouvelles dimensions
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.flipY = false;
-  // Assurer que la texture couvre toute la surface une seule fois
-  texture.repeat.set(1, 1);
+  
+  // Ajuster le repeat de la texture en fonction des proportions de l'objet 3D
+  if (dimensions) {
+    const aspectRatio = dimensions.width / dimensions.height;
+    if (aspectRatio > 1) {
+      // Plus large que haut
+      texture.repeat.set(1, 1 / aspectRatio);
+    } else {
+      // Plus haut que large
+      texture.repeat.set(aspectRatio, 1);
+    }
+  } else {
+    texture.repeat.set(1, 1);
+  }
   texture.offset.set(0, 0);
 
   // Extract shape from image and create geometry
