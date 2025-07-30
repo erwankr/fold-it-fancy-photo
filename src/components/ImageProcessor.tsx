@@ -66,8 +66,7 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
         canvas.height = finalHeight;
         
         if (ctx) {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Ne pas remplir le canvas pour préserver la transparence
           
           // Redimensionner l'image complète pour remplir le canvas avec l'aspect ratio cible
           const imgAspectRatio = img.naturalWidth / img.naturalHeight;
@@ -96,8 +95,7 @@ export const processImageWithTemplate = (file: File, cropSettings: CropSettings)
         canvas.height = finalHeight;
 
         if (ctx) {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Ne pas remplir le canvas pour préserver la transparence
           
           // Recadrer selon le gabarit et redimensionner pour respecter l'aspect ratio cible
           ctx.drawImage(
