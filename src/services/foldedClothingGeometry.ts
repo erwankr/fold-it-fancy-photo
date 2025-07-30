@@ -19,29 +19,41 @@ export const createFoldedClothingGeometry = (
   dimensions?: { width: number; height: number; depth: number },
   cropSettings?: CropSettings
 ) => {
-  const width = dimensions ? dimensions.width * 0.01 : 2;
-  const height = dimensions ? dimensions.height * 0.01 : 1.5;
-  const depth = dimensions ? dimensions.depth * 0.01 : 0.8;
+  // Conversion précise des dimensions en unités 3D (cm vers unités Three.js)
+  const width = dimensions ? dimensions.width / 20 : 2;  // Plus de précision dans la conversion
+  const height = dimensions ? dimensions.height / 20 : 1.5;
+  const depth = dimensions ? Math.max(dimensions.depth / 20, 0.1) : 0.8;
 
   console.log('Creating geometry for:', type, 'with dimensions:', { width, height, depth });
 
-  // Calculer les dimensions finales basées sur la découpe si disponible
+  // Calculer les dimensions finales basées sur la découpe et les dimensions réelles
   let finalWidth = width;
   let finalHeight = height;
   
   if (cropSettings) {
-    // Adapter les proportions selon la découpe
-    const cropAspectRatio = cropSettings.targetAspectRatio;
-    if (cropAspectRatio > 1) {
-      // Plus large que haut
-      finalWidth = width * cropSettings.widthPercent * 1.5;
-      finalHeight = height * cropSettings.heightPercent;
+    // Utiliser les proportions exactes de la découpe pour ajuster les dimensions
+    const cropWidthRatio = cropSettings.widthPercent / 100;
+    const cropHeightRatio = cropSettings.heightPercent / 100;
+    const aspectRatio = cropSettings.targetAspectRatio;
+    
+    // Appliquer les proportions de découpe directement aux dimensions
+    finalWidth = width * cropWidthRatio;
+    finalHeight = height * cropHeightRatio;
+    
+    // Ajuster selon le ratio d'aspect pour maintenir les proportions
+    if (aspectRatio > 1) {
+      // Image plus large que haute
+      finalHeight = finalWidth / aspectRatio;
     } else {
-      // Plus haut que large
-      finalWidth = width * cropSettings.widthPercent;
-      finalHeight = height * cropSettings.heightPercent * 1.2;
+      // Image plus haute que large  
+      finalWidth = finalHeight * aspectRatio;
     }
-    console.log('Adjusted dimensions based on crop settings:', { finalWidth, finalHeight });
+    
+    console.log('Dimensions ajustées selon découpe:', { 
+      original: { width, height }, 
+      crop: { cropWidthRatio, cropHeightRatio, aspectRatio },
+      final: { finalWidth, finalHeight } 
+    });
   }
 
   let geometry;
@@ -226,17 +238,32 @@ const createFoldedShirt = (width: number, height: number, depth: number, cropSet
   return group;
 };
 
-// Applique une texture réaliste avec effet de plis
+// Applique une texture réaliste avec effet de plis et découpe précise
 export const applyFoldedTexture = (
   mesh: THREE.Group, 
   texture: THREE.Texture,
-  type: 'jean' | 'tshirt' | 'chemise'
+  type: 'jean' | 'tshirt' | 'chemise',
+  cropSettings?: CropSettings
 ) => {
-  // Configuration de la texture pour les plis
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 1);
-  texture.offset.set(0, 0);
+  // Configuration de la texture selon la découpe
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  
+  // Si on a des paramètres de découpe, ajuster la texture en conséquence
+  if (cropSettings) {
+    // Utiliser la zone découpée de la texture
+    texture.repeat.set(
+      cropSettings.widthPercent / 100,
+      cropSettings.heightPercent / 100
+    );
+    texture.offset.set(
+      cropSettings.xPercent / 100,
+      cropSettings.yPercent / 100
+    );
+  } else {
+    texture.repeat.set(1, 1);
+    texture.offset.set(0, 0);
+  }
   
   // Matériau avec propriétés réalistes pour vêtements pliés
   const material = new THREE.MeshStandardMaterial({
@@ -245,7 +272,8 @@ export const applyFoldedTexture = (
     metalness: 0.0,
     normalScale: new THREE.Vector2(0.3, 0.3), // Effet de texture subtil
     side: THREE.DoubleSide,
-    transparent: false
+    transparent: true,
+    alphaTest: 0.1 // Pour respecter la transparence de l'image découpée
   });
 
   // Appliquer le matériau à tous les meshes
@@ -255,8 +283,8 @@ export const applyFoldedTexture = (
       child.castShadow = true;
       child.receiveShadow = true;
       
-      // Ajuster les UV mapping pour chaque partie du vêtement
-      adjustUVMapping(child, type);
+      // Ajuster les UV mapping avec les paramètres de découpe
+      adjustUVMappingWithCrop(child, type, cropSettings);
     }
   });
 };
@@ -271,22 +299,44 @@ const getClothingRoughness = (type: 'jean' | 'tshirt' | 'chemise'): number => {
   }
 };
 
-// Ajuste le mapping UV pour un rendu réaliste de la texture
-const adjustUVMapping = (mesh: THREE.Mesh, type: string) => {
+// Ajuste le mapping UV avec prise en compte de la découpe
+const adjustUVMappingWithCrop = (mesh: THREE.Mesh, type: string, cropSettings?: CropSettings) => {
   if (!mesh.geometry.attributes.uv) return;
   
   const uvAttribute = mesh.geometry.attributes.uv;
   const uvArray = uvAttribute.array as Float32Array;
   
-  // Ajuster les coordonnées UV pour éviter les étirements sur les plis
+  // Paramètres de découpe (par défaut : image complète)
+  const cropX = cropSettings ? cropSettings.xPercent / 100 : 0;
+  const cropY = cropSettings ? cropSettings.yPercent / 100 : 0;
+  const cropWidth = cropSettings ? cropSettings.widthPercent / 100 : 1;
+  const cropHeight = cropSettings ? cropSettings.heightPercent / 100 : 1;
+  
+  // Ajuster les coordonnées UV pour mapper la zone découpée
   for (let i = 0; i < uvArray.length; i += 2) {
-    // Normaliser les coordonnées UV
-    uvArray[i] = Math.max(0, Math.min(1, uvArray[i]));
-    uvArray[i + 1] = Math.max(0, Math.min(1, uvArray[i + 1]));
+    let u = uvArray[i];
+    let v = uvArray[i + 1];
+    
+    // Appliquer la transformation de découpe
+    u = cropX + (u * cropWidth);
+    v = cropY + (v * cropHeight);
+    
+    // Ajouter une légère variation pour l'effet de pli
+    u += (Math.random() - 0.5) * 0.01;
+    v += (Math.random() - 0.5) * 0.01;
+    
+    // S'assurer que les coordonnées restent dans les limites de la texture
+    uvArray[i] = Math.max(0, Math.min(1, u));
+    uvArray[i + 1] = Math.max(0, Math.min(1, v));
   }
   
   uvAttribute.needsUpdate = true;
   mesh.geometry.computeBoundingBox();
+};
+
+// Maintenir la fonction originale pour compatibilité
+const adjustUVMapping = (mesh: THREE.Mesh, type: string) => {
+  adjustUVMappingWithCrop(mesh, type);
 };
 
 // Crée des lignes de plis réalistes pour ajouter du volume

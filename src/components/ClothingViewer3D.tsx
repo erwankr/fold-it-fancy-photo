@@ -77,8 +77,8 @@ const ClothingMesh: React.FC<{
       
       console.log('Geometry created, applying texture...');
       
-      // Appliquer la texture réaliste
-      applyFoldedTexture(foldedGeometry, texture, clothingType);
+      // Appliquer la texture réaliste avec les paramètres de découpe
+      applyFoldedTexture(foldedGeometry, texture, clothingType, cropSettings);
       
       // Ajuster l'échelle générale pour être visible
       const scale = dimensions ? 
