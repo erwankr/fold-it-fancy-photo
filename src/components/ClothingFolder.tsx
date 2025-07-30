@@ -399,6 +399,7 @@ export const ClothingFolder = () => {
               <ClothingViewer3D
                 imageUrl={selectedImageFor3D.processedUrl}
                 clothingType={selectedImageFor3D.type}
+                cropSettings={customTemplates[selectedImageFor3D.type]}
                 onDownload={() => downloadImage(selectedImageFor3D)}
               />
               

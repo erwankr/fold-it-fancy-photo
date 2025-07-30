@@ -7,6 +7,16 @@ import { Download, RotateCcw, FileDown } from 'lucide-react';
 import { exportToGLB } from '../services/glbExporter';
 import { createFoldedClothingGeometry, applyFoldedTexture } from '../services/foldedClothingGeometry';
 
+interface CropSettings {
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+  targetAspectRatio: number;
+  maxFinalWidth: number;
+  maxFinalHeight: number;
+}
+
 interface ClothingViewer3DProps {
   imageUrl: string;
   clothingType: 'jean' | 'tshirt' | 'chemise';
@@ -15,6 +25,7 @@ interface ClothingViewer3DProps {
     height: number;  // en cm
     depth: number;   // en cm
   };
+  cropSettings?: CropSettings;
   onDownload?: () => void;
 }
 
@@ -23,11 +34,13 @@ const ClothingMesh: React.FC<{
   imageUrl: string; 
   clothingType: 'jean' | 'tshirt' | 'chemise'; 
   dimensions?: { width: number; height: number; depth: number };
+  cropSettings?: CropSettings;
   onMeshReady?: (mesh: THREE.Group) => void 
 }> = ({ 
   imageUrl, 
   clothingType,
   dimensions,
+  cropSettings,
   onMeshReady 
 }) => {
   const groupRef = useRef<THREE.Group>(null);
@@ -52,8 +65,8 @@ const ClothingMesh: React.FC<{
 
     console.log('Creating folded clothing geometry for:', clothingType);
     
-    // Créer la géométrie pliée personnalisée
-    const foldedGeometry = createFoldedClothingGeometry(clothingType, dimensions);
+    // Créer la géométrie pliée personnalisée avec les paramètres de découpe
+    const foldedGeometry = createFoldedClothingGeometry(clothingType, dimensions, cropSettings);
     
     // Appliquer la texture réaliste
     applyFoldedTexture(foldedGeometry, texture, clothingType);
@@ -77,7 +90,7 @@ const ClothingMesh: React.FC<{
     
     console.log('Folded clothing geometry created successfully');
     
-  }, [texture, clothingType, dimensions, onMeshReady]);
+  }, [texture, clothingType, dimensions, cropSettings, onMeshReady]);
 
   // Ajouter le mesh plié au groupe
   useEffect(() => {
@@ -103,6 +116,7 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
   imageUrl, 
   clothingType, 
   dimensions,
+  cropSettings,
   onDownload 
 }) => {
   const [autoRotate, setAutoRotate] = useState(true);
@@ -141,6 +155,7 @@ const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
           imageUrl={imageUrl} 
           clothingType={clothingType} 
           dimensions={dimensions}
+          cropSettings={cropSettings}
           onMeshReady={setCurrentMesh}
         />
         

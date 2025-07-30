@@ -1,46 +1,86 @@
 import * as THREE from 'three';
 
+// Interface pour les paramètres de découpe
+interface CropSettings {
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+  targetAspectRatio: number;
+  maxFinalWidth: number;
+  maxFinalHeight: number;
+}
+
 // Crée une géométrie de vêtement plié réaliste avec des courbes et des plis
 export const createFoldedClothingGeometry = (
   type: 'jean' | 'tshirt' | 'chemise',
-  dimensions?: { width: number; height: number; depth: number }
+  dimensions?: { width: number; height: number; depth: number },
+  cropSettings?: CropSettings
 ) => {
   const width = dimensions ? dimensions.width * 0.01 : 2;
   const height = dimensions ? dimensions.height * 0.01 : 1.5;
   const depth = dimensions ? dimensions.depth * 0.01 : 0.8;
 
+  // Calculer les dimensions basées sur la découpe si disponible
+  let finalWidth = width;
+  let finalHeight = height;
+  
+  if (cropSettings) {
+    // Adapter les proportions selon la découpe
+    const cropAspectRatio = cropSettings.targetAspectRatio;
+    if (cropAspectRatio > 1) {
+      // Plus large que haut
+      finalWidth = width * cropSettings.widthPercent * 1.5;
+      finalHeight = height * cropSettings.heightPercent;
+    } else {
+      // Plus haut que large
+      finalWidth = width * cropSettings.widthPercent;
+      finalHeight = height * cropSettings.heightPercent * 1.2;
+    }
+  }
+
   switch (type) {
     case 'tshirt':
-      return createFoldedTShirt(width, height, depth);
+      return createFoldedTShirt(finalWidth, finalHeight, depth, cropSettings);
     case 'jean':
-      return createFoldedJeans(width, height, depth);
+      return createFoldedJeans(finalWidth, finalHeight, depth, cropSettings);
     case 'chemise':
-      return createFoldedShirt(width, height, depth);
+      return createFoldedShirt(finalWidth, finalHeight, depth, cropSettings);
     default:
-      return createFoldedTShirt(width, height, depth);
+      return createFoldedTShirt(finalWidth, finalHeight, depth, cropSettings);
   }
 };
 
 // Crée un t-shirt plié avec une forme organique
-const createFoldedTShirt = (width: number, height: number, depth: number) => {
+const createFoldedTShirt = (width: number, height: number, depth: number, cropSettings?: CropSettings) => {
   const group = new THREE.Group();
   
-  // Forme organique pour le corps principal
+  // Forme organique pour le corps principal adaptée à la découpe
   const mainShape = new THREE.Shape();
   
-  const w = width * 0.5;
-  const h = height * 0.6;
+  // Adapter les proportions selon la découpe
+  let w = width * 0.5;
+  let h = height * 0.6;
   
-  // Créer une forme plus organique avec des courbes douces
-  mainShape.moveTo(-w * 0.9, -h * 0.8);
-  mainShape.bezierCurveTo(-w * 1.1, -h * 0.6, -w * 1.05, -h * 0.3, -w * 0.95, -h * 0.1);
-  mainShape.bezierCurveTo(-w * 0.9, h * 0.2, -w * 0.85, h * 0.5, -w * 0.8, h * 0.8);
-  mainShape.bezierCurveTo(-w * 0.6, h * 0.9, -w * 0.3, h * 0.85, 0, h * 0.9);
-  mainShape.bezierCurveTo(w * 0.3, h * 0.85, w * 0.6, h * 0.9, w * 0.8, h * 0.8);
-  mainShape.bezierCurveTo(w * 0.85, h * 0.5, w * 0.9, h * 0.2, w * 0.95, -h * 0.1);
-  mainShape.bezierCurveTo(w * 1.05, -h * 0.3, w * 1.1, -h * 0.6, w * 0.9, -h * 0.8);
-  mainShape.bezierCurveTo(w * 0.7, -h * 0.9, w * 0.3, -h * 0.85, 0, -h * 0.9);
-  mainShape.bezierCurveTo(-w * 0.3, -h * 0.85, -w * 0.7, -h * 0.9, -w * 0.9, -h * 0.8);
+  if (cropSettings) {
+    const aspectRatio = cropSettings.targetAspectRatio;
+    if (aspectRatio < 0.8) {
+      // Forme verticale pour t-shirt (plus haut que large)
+      h = height * 0.8;
+      w = width * 0.4;
+    }
+  }
+  
+  // Créer une forme adaptée à la découpe
+  mainShape.moveTo(-w * 0.85, -h * 0.9);
+  mainShape.bezierCurveTo(-w * 0.95, -h * 0.7, -w * 0.9, -h * 0.4, -w * 0.85, -h * 0.1);
+  mainShape.bezierCurveTo(-w * 0.8, h * 0.2, -w * 0.75, h * 0.5, -w * 0.7, h * 0.8);
+  mainShape.bezierCurveTo(-w * 0.5, h * 0.85, -w * 0.25, h * 0.8, 0, h * 0.85);
+  mainShape.bezierCurveTo(w * 0.25, h * 0.8, w * 0.5, h * 0.85, w * 0.7, h * 0.8);
+  mainShape.bezierCurveTo(w * 0.75, h * 0.5, w * 0.8, h * 0.2, w * 0.85, -h * 0.1);
+  mainShape.bezierCurveTo(w * 0.9, -h * 0.4, w * 0.95, -h * 0.7, w * 0.85, -h * 0.9);
+  mainShape.bezierCurveTo(w * 0.6, -h * 0.95, w * 0.25, -h * 0.9, 0, -h * 0.95);
+  mainShape.bezierCurveTo(-w * 0.25, -h * 0.9, -w * 0.6, -h * 0.95, -w * 0.85, -h * 0.9);
   
   // Extrusion avec des paramètres pour une forme plus douce
   const extrudeSettings = {
@@ -66,14 +106,23 @@ const createFoldedTShirt = (width: number, height: number, depth: number) => {
 };
 
 // Crée un jean plié avec forme organique
-const createFoldedJeans = (width: number, height: number, depth: number) => {
+const createFoldedJeans = (width: number, height: number, depth: number, cropSettings?: CropSettings) => {
   const group = new THREE.Group();
   
-  // Forme organique pour jean
+  // Forme organique pour jean adaptée à la découpe
   const jeanShape = new THREE.Shape();
   
-  const w = width * 0.4;
-  const h = height * 0.8;
+  let w = width * 0.4;
+  let h = height * 0.8;
+  
+  if (cropSettings) {
+    const aspectRatio = cropSettings.targetAspectRatio;
+    if (aspectRatio > 1) {
+      // Forme horizontale pour jean plié (plus large que haut)
+      w = width * 0.6;
+      h = height * 0.5;
+    }
+  }
   
   // Forme naturelle avec des irrégularités subtiles
   jeanShape.moveTo(-w * 0.95, -h * 0.9);
@@ -109,14 +158,23 @@ const createFoldedJeans = (width: number, height: number, depth: number) => {
 };
 
 // Crée une chemise pliée avec forme organique
-const createFoldedShirt = (width: number, height: number, depth: number) => {
+const createFoldedShirt = (width: number, height: number, depth: number, cropSettings?: CropSettings) => {
   const group = new THREE.Group();
   
-  // Forme organique pour chemise
+  // Forme organique pour chemise adaptée à la découpe
   const shirtShape = new THREE.Shape();
   
-  const w = width * 0.45;
-  const h = height * 0.7;
+  let w = width * 0.45;
+  let h = height * 0.7;
+  
+  if (cropSettings) {
+    const aspectRatio = cropSettings.targetAspectRatio;
+    if (aspectRatio < 0.8) {
+      // Forme verticale pour chemise (plus haut que large)
+      h = height * 0.85;
+      w = width * 0.35;
+    }
+  }
   
   // Forme fluide avec des variations naturelles
   shirtShape.moveTo(-w * 0.9, -h * 0.85);
