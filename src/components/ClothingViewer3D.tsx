@@ -189,14 +189,19 @@ const ClothingMesh: React.FC<{
           }
         });
         
-        // Ajuster les dimensions
+        // Ajuster les dimensions - échelle plus grande pour être visible
+        const baseScale = 3; // Beaucoup plus grand pour être visible
         if (dimensions) {
-          const scale = 0.02; // Plus petit pour commencer
+          const scale = baseScale * 0.01; // Ajuster selon les dimensions
           clonedScene.scale.setScalar(scale);
-          console.log('Applied scale:', scale);
+          console.log('Applied scale with dimensions:', scale);
         } else {
-          clonedScene.scale.setScalar(1);
+          clonedScene.scale.setScalar(baseScale);
+          console.log('Applied base scale:', baseScale);
         }
+        
+        // Centrer le modèle
+        clonedScene.position.set(0, 0, 0);
         
         // Vider et ajouter le modèle
         groupRef.current.clear();
