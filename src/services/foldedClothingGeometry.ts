@@ -25,31 +25,40 @@ export const createFoldedClothingGeometry = (
 const createFoldedTShirt = (width: number, height: number, depth: number) => {
   const group = new THREE.Group();
   
-  // Créer un plan principal comme base du t-shirt plié
+  // Créer une forme arrondie pour le corps principal
   const mainShape = new THREE.Shape();
   
-  // Forme rectangulaire légèrement arrondie pour le corps principal
+  // Forme organique arrondie pour un t-shirt plié
   const w = width * 0.5;
   const h = height * 0.6;
+  const radius = Math.min(w, h) * 0.15;
   
-  mainShape.moveTo(-w, -h);
-  mainShape.lineTo(w, -h);
-  mainShape.quadraticCurveTo(w * 1.1, -h * 0.8, w, -h * 0.5); // Coin arrondi
-  mainShape.lineTo(w, h * 0.5);
-  mainShape.quadraticCurveTo(w * 1.1, h * 0.8, w, h);
-  mainShape.lineTo(-w, h);
-  mainShape.quadraticCurveTo(-w * 1.1, h * 0.8, -w, h * 0.5);
-  mainShape.lineTo(-w, -h * 0.5);
-  mainShape.quadraticCurveTo(-w * 1.1, -h * 0.8, -w, -h);
+  // Commencer par les coins arrondis
+  mainShape.moveTo(-w + radius, -h);
+  mainShape.lineTo(w - radius, -h);
+  mainShape.quadraticCurveTo(w, -h, w, -h + radius);
+  mainShape.lineTo(w, h - radius);
+  mainShape.quadraticCurveTo(w, h, w - radius, h);
+  mainShape.lineTo(-w + radius, h);
+  mainShape.quadraticCurveTo(-w, h, -w, h - radius);
+  mainShape.lineTo(-w, -h + radius);
+  mainShape.quadraticCurveTo(-w, -h, -w + radius, -h);
   
-  // Extruder le corps principal
+  // Ajouter des courbes douces sur les côtés pour l'effet plié
+  const curve1 = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-w * 0.3, 0, 0),
+    new THREE.Vector3(0, depth * 0.2, 0),
+    new THREE.Vector3(w * 0.3, 0, 0)
+  );
+  
   const extrudeSettings = {
     depth: depth * 0.15,
     bevelEnabled: true,
-    bevelSegments: 2,
-    steps: 2,
-    bevelSize: depth * 0.02,
-    bevelThickness: depth * 0.01,
+    bevelSegments: 4,
+    steps: 8,
+    bevelSize: depth * 0.03,
+    bevelThickness: depth * 0.02,
+    curveSegments: 16
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(mainShape, extrudeSettings);
@@ -58,76 +67,99 @@ const createFoldedTShirt = (width: number, height: number, depth: number) => {
     side: THREE.DoubleSide 
   });
   const mainBody = new THREE.Mesh(mainBodyGeometry, mainBodyMaterial);
-  mainBody.rotation.x = -Math.PI / 2; // Poser à plat
+  mainBody.rotation.x = -Math.PI / 2;
   group.add(mainBody);
 
-  // Créer les manches pliées de manière plus réaliste
+  // Manches arrondies et pliées
   const sleeveShape = new THREE.Shape();
-  sleeveShape.moveTo(0, 0);
-  sleeveShape.lineTo(width * 0.25, 0);
-  sleeveShape.quadraticCurveTo(width * 0.3, height * 0.1, width * 0.25, height * 0.2);
-  sleeveShape.lineTo(0, height * 0.15);
+  const sleeveRadius = width * 0.05;
+  
+  // Forme de manche arrondie
+  sleeveShape.moveTo(sleeveRadius, 0);
+  sleeveShape.absarc(0, 0, sleeveRadius, 0, Math.PI, false);
+  sleeveShape.lineTo(-sleeveRadius, height * 0.2);
+  sleeveShape.absarc(0, height * 0.2, sleeveRadius, Math.PI, 0, false);
   sleeveShape.closePath();
   
   const sleeveGeometry = new THREE.ExtrudeGeometry(sleeveShape, {
-    depth: depth * 0.1,
+    depth: depth * 0.08,
     bevelEnabled: true,
-    bevelSegments: 1,
+    bevelSegments: 3,
     bevelSize: depth * 0.01,
+    curveSegments: 12
   });
   
-  // Manche gauche pliée
+  // Manche gauche
   const leftSleeve = new THREE.Mesh(sleeveGeometry, mainBodyMaterial);
-  leftSleeve.position.set(-width * 0.3, depth * 0.05, height * 0.1);
-  leftSleeve.rotation.set(-Math.PI / 2, 0, Math.PI);
+  leftSleeve.position.set(-width * 0.4, depth * 0.08, height * 0.1);
+  leftSleeve.rotation.set(-Math.PI / 2, 0, Math.PI / 6);
   group.add(leftSleeve);
   
-  // Manche droite pliée
+  // Manche droite
   const rightSleeve = new THREE.Mesh(sleeveGeometry, mainBodyMaterial);
-  rightSleeve.position.set(width * 0.3, depth * 0.05, height * 0.1);
-  rightSleeve.rotation.set(-Math.PI / 2, 0, 0);
+  rightSleeve.position.set(width * 0.4, depth * 0.08, height * 0.1);
+  rightSleeve.rotation.set(-Math.PI / 2, 0, -Math.PI / 6);
   group.add(rightSleeve);
 
-  // Ajouter des plis pour l'effet plié
-  const foldGeometry = new THREE.CylinderGeometry(depth * 0.01, depth * 0.01, height * 0.4, 8);
+  // Plis organiques avec des courbes
+  const foldCurve = new THREE.EllipseCurve(
+    0, 0,
+    width * 0.02, height * 0.3,
+    0, 2 * Math.PI,
+    false,
+    0
+  );
+  
+  const foldPoints = foldCurve.getPoints(20);
+  const foldGeometry = new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(foldPoints.map(p => new THREE.Vector3(p.x, 0, p.y))),
+    20,
+    depth * 0.008,
+    8,
+    false
+  );
+  
   const fold1 = new THREE.Mesh(foldGeometry, mainBodyMaterial);
-  fold1.position.set(-width * 0.15, depth * 0.1, 0);
-  fold1.rotation.x = Math.PI / 2;
+  fold1.position.set(-width * 0.15, depth * 0.12, 0);
   group.add(fold1);
   
   const fold2 = new THREE.Mesh(foldGeometry, mainBodyMaterial);
-  fold2.position.set(width * 0.15, depth * 0.1, 0);
-  fold2.rotation.x = Math.PI / 2;
+  fold2.position.set(width * 0.15, depth * 0.12, 0);
   group.add(fold2);
 
   return group;
 };
 
-// Crée un jean plié
+// Crée un jean plié avec forme arrondie
 const createFoldedJeans = (width: number, height: number, depth: number) => {
   const group = new THREE.Group();
   
-  // Créer la forme principale du jean plié
+  // Forme arrondie pour jean plié
   const jeanShape = new THREE.Shape();
   
-  // Forme rectangulaire pour un jean plié en deux
   const w = width * 0.4;
   const h = height * 0.8;
+  const cornerRadius = Math.min(w, h) * 0.1;
   
-  jeanShape.moveTo(-w, -h);
-  jeanShape.lineTo(w, -h);
-  jeanShape.lineTo(w, h);
-  jeanShape.lineTo(-w, h);
-  jeanShape.closePath();
+  // Forme avec coins arrondis
+  jeanShape.moveTo(-w + cornerRadius, -h);
+  jeanShape.lineTo(w - cornerRadius, -h);
+  jeanShape.arc(0, 0, cornerRadius, -Math.PI / 2, 0);
+  jeanShape.lineTo(w, h - cornerRadius);
+  jeanShape.arc(0, 0, cornerRadius, 0, Math.PI / 2);
+  jeanShape.lineTo(-w + cornerRadius, h);
+  jeanShape.arc(0, 0, cornerRadius, Math.PI / 2, Math.PI);
+  jeanShape.lineTo(-w, -h + cornerRadius);
+  jeanShape.arc(0, 0, cornerRadius, Math.PI, -Math.PI / 2);
   
-  // Extruder avec plus d'épaisseur pour un jean
   const jeanExtrudeSettings = {
-    depth: depth * 0.3,
+    depth: depth * 0.25,
     bevelEnabled: true,
-    bevelSegments: 3,
-    steps: 3,
-    bevelSize: depth * 0.03,
-    bevelThickness: depth * 0.02,
+    bevelSegments: 5,
+    steps: 6,
+    bevelSize: depth * 0.04,
+    bevelThickness: depth * 0.03,
+    curveSegments: 20
   };
   
   const mainBodyGeometry = new THREE.ExtrudeGeometry(jeanShape, jeanExtrudeSettings);
@@ -139,39 +171,39 @@ const createFoldedJeans = (width: number, height: number, depth: number) => {
   mainBody.rotation.x = -Math.PI / 2;
   group.add(mainBody);
 
-  // Jambes pliées qui dépassent légèrement
+  // Jambes arrondies qui dépassent
   const legShape = new THREE.Shape();
-  legShape.moveTo(0, 0);
-  legShape.lineTo(width * 0.15, 0);
-  legShape.lineTo(width * 0.15, height * 0.4);
-  legShape.lineTo(0, height * 0.4);
-  legShape.closePath();
+  const legRadius = width * 0.05;
+  
+  // Forme de jambe arrondie
+  legShape.moveTo(legRadius, 0);
+  legShape.absarc(legRadius, legRadius, legRadius, -Math.PI / 2, 0, false);
+  legShape.lineTo(width * 0.15, height * 0.4 - legRadius);
+  legShape.absarc(width * 0.15 - legRadius, height * 0.4 - legRadius, legRadius, 0, Math.PI / 2, false);
+  legShape.lineTo(legRadius, height * 0.4);
+  legShape.absarc(legRadius, height * 0.4 - legRadius, legRadius, Math.PI / 2, Math.PI, false);
+  legShape.lineTo(0, legRadius);
+  legShape.absarc(legRadius, legRadius, legRadius, Math.PI, -Math.PI / 2, false);
   
   const legGeometry = new THREE.ExtrudeGeometry(legShape, {
-    depth: depth * 0.25,
+    depth: depth * 0.2,
     bevelEnabled: true,
-    bevelSegments: 2,
-    bevelSize: depth * 0.01,
+    bevelSegments: 3,
+    bevelSize: depth * 0.02,
+    curveSegments: 16
   });
   
   // Jambe gauche
   const leftLeg = new THREE.Mesh(legGeometry, mainBodyMaterial);
-  leftLeg.position.set(-width * 0.2, depth * 0.15, -height * 0.3);
+  leftLeg.position.set(-width * 0.25, depth * 0.13, -height * 0.3);
   leftLeg.rotation.x = -Math.PI / 2;
   group.add(leftLeg);
   
   // Jambe droite
   const rightLeg = new THREE.Mesh(legGeometry, mainBodyMaterial);
-  rightLeg.position.set(width * 0.05, depth * 0.15, -height * 0.3);
+  rightLeg.position.set(0, depth * 0.13, -height * 0.3);
   rightLeg.rotation.x = -Math.PI / 2;
   group.add(rightLeg);
-
-  // Couture centrale du jean
-  const seamGeometry = new THREE.CylinderGeometry(depth * 0.005, depth * 0.005, height * 0.6, 8);
-  const centralSeam = new THREE.Mesh(seamGeometry, mainBodyMaterial);
-  centralSeam.position.set(0, depth * 0.16, 0);
-  centralSeam.rotation.x = Math.PI / 2;
-  group.add(centralSeam);
 
   return group;
 };
