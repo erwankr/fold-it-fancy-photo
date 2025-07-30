@@ -119,6 +119,7 @@ const createClothingGeometry = (type: string, dimensions?: { width: number; heig
   }
 };
 
+// Composant optimisé pour charger et texturer les modèles GLB
 const ClothingMesh: React.FC<{ 
   imageUrl: string; 
   clothingType: string; 
@@ -131,140 +132,91 @@ const ClothingMesh: React.FC<{
   onMeshReady 
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [texturedMesh, setTexturedMesh] = useState<THREE.Group | null>(null);
+  
+  // Charger la texture et le modèle GLB
   const texture = useLoader(THREE.TextureLoader, imageUrl);
+  const { scene: originalScene } = useGLTF('/models/tshirt.glb');
   
-  // Essayer de charger le modèle GLB avec gestion d'erreur
-  let tshirtScene = null;
-  try {
-    const gltf = useGLTF('/models/tshirt.glb');
-    tshirtScene = gltf.scene;
-    console.log('GLB model loaded successfully:', gltf);
-  } catch (error) {
-    console.error('Error loading GLB model:', error);
-    setHasError(true);
-  }
-  
-  // Configuration de la texture
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.flipY = false;
-  texture.repeat.set(1, 1);
-  texture.offset.set(0, 0);
-
-  // Appliquer la texture et ajuster les dimensions
+  // Préparer la texture optimisée
   useEffect(() => {
-    if (!groupRef.current) return;
-    
-    setIsProcessing(true);
-    console.log('Starting ClothingMesh setup...', { 
-      hasTshirtScene: !!tshirtScene, 
-      hasError,
-      dimensions 
-    });
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.flipY = false;
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+  }, [texture]);
 
-    if (tshirtScene && !hasError) {
-      try {
-        // Cloner la scene
-        const clonedScene = tshirtScene.clone();
-        console.log('Scene cloned successfully');
-        
-        // Appliquer la texture à tous les meshes
-        clonedScene.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            console.log('Found mesh in GLB:', child.name);
-            
-            // Créer un nouveau matériau avec la texture
-            const material = new THREE.MeshStandardMaterial({
-              map: texture,
-              transparent: true,
-              side: THREE.DoubleSide,
-              roughness: 0.7,
-              metalness: 0.1
-            });
-            
-            child.material = material;
-            console.log('Applied texture to mesh:', child.name);
-          }
-        });
-        
-        // Ajuster les dimensions - échelle plus grande pour être visible
-        const baseScale = 3; // Beaucoup plus grand pour être visible
-        if (dimensions) {
-          const scale = baseScale * 0.01; // Ajuster selon les dimensions
-          clonedScene.scale.setScalar(scale);
-          console.log('Applied scale with dimensions:', scale);
-        } else {
-          clonedScene.scale.setScalar(baseScale);
-          console.log('Applied base scale:', baseScale);
+  // Créer et texturer le mesh
+  useEffect(() => {
+    if (!originalScene || !texture) return;
+
+    // Cloner le modèle pour éviter de modifier l'original
+    const clonedScene = originalScene.clone();
+    
+    // Créer un matériau optimisé avec la texture
+    const textureMaterial = new THREE.MeshStandardMaterial({
+      map: texture,
+      transparent: false,
+      side: THREE.FrontSide,
+      roughness: 0.8,
+      metalness: 0.0,
+      envMapIntensity: 1.0
+    });
+    
+    // Appliquer le matériau à tous les meshes du modèle
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        // Cloner la géométrie si nécessaire
+        if (child.geometry) {
+          child.geometry = child.geometry.clone();
         }
         
-        // Centrer le modèle
-        clonedScene.position.set(0, 0, 0);
+        // Appliquer le nouveau matériau
+        child.material = textureMaterial;
+        child.castShadow = true;
+        child.receiveShadow = true;
         
-        // Vider et ajouter le modèle
-        groupRef.current.clear();
-        groupRef.current.add(clonedScene);
-        
-        console.log('GLB model added to scene successfully');
-        
-        if (onMeshReady) {
-          onMeshReady(groupRef.current);
-        }
-        
-      } catch (error) {
-        console.error('Error setting up GLB model:', error);
-        setHasError(true);
+        console.log(`Texture applied to mesh: ${child.name || 'unnamed'}`);
       }
-    } else {
-      // Fallback vers une géométrie simple
-      console.log('Using fallback geometry...');
-      
-      const geometry = new THREE.BoxGeometry(2, 3, 0.2);
-      const material = new THREE.MeshStandardMaterial({
-        map: texture,
-        transparent: true,
-        side: THREE.DoubleSide
-      });
-      
-      const mesh = new THREE.Mesh(geometry, material);
-      
-      // Appliquer les dimensions
-      if (dimensions) {
-        const scale = 0.1;
-        mesh.scale.set(
-          dimensions.width * scale,
-          dimensions.height * scale,
-          dimensions.depth * scale
-        );
-      }
-      
-      groupRef.current.clear();
-      groupRef.current.add(mesh);
-      
-      if (onMeshReady) {
-        onMeshReady(groupRef.current);
-      }
+    });
+    
+    // Ajuster l'échelle pour être visible
+    const scale = dimensions ? Math.max(dimensions.width, dimensions.height, dimensions.depth) * 0.02 : 2;
+    clonedScene.scale.setScalar(scale);
+    
+    // Centrer le modèle
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const center = box.getCenter(new THREE.Vector3());
+    clonedScene.position.sub(center);
+    
+    setTexturedMesh(clonedScene);
+    
+    if (onMeshReady) {
+      onMeshReady(clonedScene);
     }
     
-    setIsProcessing(false);
-  }, [tshirtScene, texture, dimensions, onMeshReady, hasError]);
+    console.log('GLB model setup completed with texture');
+    
+  }, [originalScene, texture, dimensions, onMeshReady]);
 
+  // Ajouter le mesh texturé au groupe
+  useEffect(() => {
+    if (!groupRef.current || !texturedMesh) return;
+    
+    // Vider le groupe et ajouter le nouveau mesh
+    groupRef.current.clear();
+    groupRef.current.add(texturedMesh);
+    
+  }, [texturedMesh]);
+
+  // Animation de rotation douce
   useFrame((state) => {
-    if (groupRef.current && !isProcessing) {
-      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+    if (groupRef.current && texturedMesh) {
+      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.05;
     }
   });
-
-  if (isProcessing) {
-    return (
-      <mesh>
-        <boxGeometry args={[0.1, 0.1, 0.1]} />
-        <meshStandardMaterial color="gray" transparent opacity={0.5} />
-      </mesh>
-    );
-  }
 
   return <group ref={groupRef} />;
 };
