@@ -132,79 +132,119 @@ const ClothingMesh: React.FC<{
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const [isProcessing, setIsProcessing] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const texture = useLoader(THREE.TextureLoader, imageUrl);
   
-  // Charger le modèle GLB de t-shirt
-  const { scene: tshirtScene } = useGLTF('/models/tshirt.glb');
+  // Essayer de charger le modèle GLB avec gestion d'erreur
+  let tshirtScene = null;
+  try {
+    const gltf = useGLTF('/models/tshirt.glb');
+    tshirtScene = gltf.scene;
+    console.log('GLB model loaded successfully:', gltf);
+  } catch (error) {
+    console.error('Error loading GLB model:', error);
+    setHasError(true);
+  }
   
-  // Configuration de la texture pour un meilleur mapping sur les nouvelles dimensions
+  // Configuration de la texture
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.flipY = false;
-  
-  // Ajuster le repeat de la texture en fonction des proportions de l'objet 3D
-  if (dimensions) {
-    const aspectRatio = dimensions.width / dimensions.height;
-    if (aspectRatio > 1) {
-      // Plus large que haut
-      texture.repeat.set(1, 1 / aspectRatio);
-    } else {
-      // Plus haut que large
-      texture.repeat.set(aspectRatio, 1);
-    }
-  } else {
-    texture.repeat.set(1, 1);
-  }
+  texture.repeat.set(1, 1);
   texture.offset.set(0, 0);
 
   // Appliquer la texture et ajuster les dimensions
   useEffect(() => {
-    if (tshirtScene && groupRef.current) {
-      setIsProcessing(true);
-      
-      // Cloner la scene pour éviter les conflits
-      const clonedScene = tshirtScene.clone();
-      
-      // Parcourir tous les meshes dans la scène clonée
-      clonedScene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          // Appliquer la texture à tous les matériaux
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat) => {
-                if (mat instanceof THREE.MeshStandardMaterial) {
-                  mat.map = texture;
-                  mat.needsUpdate = true;
-                }
-              });
-            } else if (child.material instanceof THREE.MeshStandardMaterial) {
-              child.material.map = texture;
-              child.material.needsUpdate = true;
-            }
+    if (!groupRef.current) return;
+    
+    setIsProcessing(true);
+    console.log('Starting ClothingMesh setup...', { 
+      hasTshirtScene: !!tshirtScene, 
+      hasError,
+      dimensions 
+    });
+
+    if (tshirtScene && !hasError) {
+      try {
+        // Cloner la scene
+        const clonedScene = tshirtScene.clone();
+        console.log('Scene cloned successfully');
+        
+        // Appliquer la texture à tous les meshes
+        clonedScene.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            console.log('Found mesh in GLB:', child.name);
+            
+            // Créer un nouveau matériau avec la texture
+            const material = new THREE.MeshStandardMaterial({
+              map: texture,
+              transparent: true,
+              side: THREE.DoubleSide,
+              roughness: 0.7,
+              metalness: 0.1
+            });
+            
+            child.material = material;
+            console.log('Applied texture to mesh:', child.name);
           }
+        });
+        
+        // Ajuster les dimensions
+        if (dimensions) {
+          const scale = 0.02; // Plus petit pour commencer
+          clonedScene.scale.setScalar(scale);
+          console.log('Applied scale:', scale);
+        } else {
+          clonedScene.scale.setScalar(1);
         }
+        
+        // Vider et ajouter le modèle
+        groupRef.current.clear();
+        groupRef.current.add(clonedScene);
+        
+        console.log('GLB model added to scene successfully');
+        
+        if (onMeshReady) {
+          onMeshReady(groupRef.current);
+        }
+        
+      } catch (error) {
+        console.error('Error setting up GLB model:', error);
+        setHasError(true);
+      }
+    } else {
+      // Fallback vers une géométrie simple
+      console.log('Using fallback geometry...');
+      
+      const geometry = new THREE.BoxGeometry(2, 3, 0.2);
+      const material = new THREE.MeshStandardMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide
       });
       
-      // Ajuster les dimensions si spécifiées
+      const mesh = new THREE.Mesh(geometry, material);
+      
+      // Appliquer les dimensions
       if (dimensions) {
-        const scale = 0.1; // 1 cm = 0.1 unités Three.js
-        const scaleFactorX = (dimensions.width * scale) / 2;
-        const scaleFactorY = (dimensions.height * scale) / 3;
-        const scaleFactorZ = (dimensions.depth * scale) / 0.3;
-        clonedScene.scale.set(scaleFactorX, scaleFactorY, scaleFactorZ);
+        const scale = 0.1;
+        mesh.scale.set(
+          dimensions.width * scale,
+          dimensions.height * scale,
+          dimensions.depth * scale
+        );
       }
       
-      // Vider le groupe et ajouter le modèle de t-shirt
       groupRef.current.clear();
-      groupRef.current.add(clonedScene);
+      groupRef.current.add(mesh);
       
       if (onMeshReady) {
         onMeshReady(groupRef.current);
       }
-      
-      setIsProcessing(false);
     }
-  }, [tshirtScene, texture, dimensions, onMeshReady]);
+    
+    setIsProcessing(false);
+  }, [tshirtScene, texture, dimensions, onMeshReady, hasError]);
 
   useFrame((state) => {
     if (groupRef.current && !isProcessing) {
@@ -224,7 +264,7 @@ const ClothingMesh: React.FC<{
   return <group ref={groupRef} />;
 };
 
-const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({ 
+const ClothingViewer3D: React.FC<ClothingViewer3DProps> = ({
   imageUrl, 
   clothingType, 
   dimensions,
